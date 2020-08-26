@@ -185,6 +185,9 @@ class PeopleController extends Controller
 
     public function storeFile($file, $destinationPath){
         $fileCompleteName = $file->getClientOriginalName();
+        $fileCompleteName = preg_replace('/\s/', '_', $fileCompleteName  );
+        $fileCompleteName = preg_replace('/[()]/', '', $fileCompleteName);
+
         $fileName = explode(".", $fileCompleteName)[0];
         $extension = explode(".", $fileCompleteName)[1];
 

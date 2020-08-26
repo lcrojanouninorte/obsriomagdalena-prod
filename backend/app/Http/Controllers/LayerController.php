@@ -112,6 +112,7 @@ class LayerController extends Controller
 
             // Dos casos, con archivo o desde urls.
             $type = explode(".", $layer->sourceType)[0];
+
             if($request->hasFile('file') ){
                 //Crear glLayer y glSource para no sobrecargar al cliente
                 //TODO: otra opciones es convertir (sld o qml a MBstyle)->gllayer y (Shapefile a Geojson)>glsource
@@ -154,7 +155,7 @@ class LayerController extends Controller
                         $layer->glLayers =  json_encode($qgis2web->glLayers, JSON_UNESCAPED_SLASHES);
                         break;        
                     default:
-                        return response()->erro($layer, 500);
+                        return response()->error($layer, 500);
                         break;
                 }
             }else{
@@ -164,19 +165,22 @@ class LayerController extends Controller
                         $layer->source = $request->input('source'); 
                         $glSource->data = $layer->source;
                         $jsonString = file_get_contents($request->input('source'));
-                        break;
+                        $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
+                        $layer->glLayers = $this->getMBStyle($jsonString,$layer);    
+                         break;
                     case 'api_icons': // Api con al menos lat lon y data
                     case 'api':
                         $layer->source = $request->input('url'); 
                         $glSource->data = $this->ApitoGeoJSON($layer->source);
                         $jsonString = json_encode($glSource->data);
+                        $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
+                        $layer->glLayers = $this->getMBStyle($jsonString,$layer);
                         break;
                     default:
-                        return response()->json($layer, 500);
+                        //return response()->json($layer, 500);
                         break;
                 }
-                $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
-                $layer->glLayers = $this->getMBStyle($jsonString,$layer);
+               
 
             }
 
@@ -366,6 +370,8 @@ class LayerController extends Controller
         $fileCompleteName = $file->getClientOriginalName();
         $fileName = explode(".", $fileCompleteName)[0];
         $extension = explode(".", $fileCompleteName)[1];
+        $fileCompleteName = preg_replace('/\s/', '_', $fileCompleteName  );
+        $fileCompleteName = preg_replace('/[()]/', '', $fileCompleteName);
 
         
         $file_saved = Storage::disk('plataforma')->put(

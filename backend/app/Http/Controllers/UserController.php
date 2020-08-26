@@ -11,8 +11,13 @@ use Str;
 use App\General;
 use App\Admin;
 use App\Staff;
-use Mail;
+use Mail;   
 use Spatie\Permission\Models\Role;
+use Storage;
+use URL;
+use \wapmorgan\UnifiedArchive\UnifiedArchive;
+use ImageOptimizer;
+use Artisan;
 class UserController extends Controller
 {
     
@@ -79,6 +84,8 @@ class UserController extends Controller
              $user->email_verification_code = $verificationCode;
              $user->status = 'Active';
              $user->last_updated_by = $auth_user->id;
+
+             
              $user->save();
            
              //User Profile / Avatar
@@ -86,20 +93,26 @@ class UserController extends Controller
   
            //TODO: if user change profile type, delete from the last
             //TODO. if user change base_role    
-           
             $profile = $user->profile;
             $profile->user_id = $user->id;
-            $profile->first_name =  $request->profile["first_name"];
-            $profile->last_name = $request->profile["last_name"];
-
+            $profileN = json_decode($request->profile);
+            $profile->first_name =  $profileN->first_name;
+            $profile->last_name = $profileN->last_name;
+            $profile->avatar = $profileN->avatar;
+            //$profile->gender = isset($profileN->gender)?$profileN->gender || '';
             
 
-             if ($files = $request->file('file')) {
-                $file = $request->file;
-                Storage::disk('plataforma')->put('/website/'.$user->email.'/'. $file, $data);
-                $profile->avatar = env('APP_URL').'/website/'.$user->email.'/'. $file;                       
+         
+             // Update avatar
+             if ($request->hasFile('file')) {
+                $fileConv = $request->file('file');
+                $destinationPath ="$user->email/";
+                $path = $this->storeFile( $fileConv, $destinationPath, 'profiles');
+                $profile->avatar =   URL::to('/').'/api/uploads/profiles/'.$path->relative;
+                ImageOptimizer::optimize($path->full,$path->full);
+                Artisan::call('my_app:optimize_img 100x100 80 "'.$path->full.'"');                      
             }else{
-                $profile->avatar =$request->profile['avatar'];
+                $profile->avatar = $profileN->avatar;
              }
 
              $profile->save();
@@ -112,7 +125,7 @@ class UserController extends Controller
              //Asign user Roles
              if(!$user->isSuperAdmin()){
                     //add base role, to roles
-                $roles = $request->roles;
+                $roles = explode(",", $request->roles); 
                 if(!array_search($user->base_role,$roles)){
                     $roles[] = $user->base_role;
                 } 
@@ -120,7 +133,7 @@ class UserController extends Controller
              }
              
              //Send Email
-             if($request->profile["configs"]["send_mail"]==true){
+             if($profileN->configs->send_mail==true){
                  //TODO: create options array
                  $data = array(
                      'verificationCode'=>$user->email_verification_code,
@@ -149,7 +162,25 @@ class UserController extends Controller
 
  
  
+    public function storeFile($file, $destinationPath, $disk){
+        $fileCompleteName = $file->getClientOriginalName();
+        $fileCompleteName = preg_replace('/\s/', '_', $fileCompleteName  );
+         $fileCompleteName = preg_replace('/[()]/', '', $fileCompleteName);
 
+        $fileName = explode(".", $fileCompleteName)[0];
+        $extension = explode(".", $fileCompleteName)[1];
+
+        
+        $file_saved = Storage::disk($disk)->put(
+            $destinationPath.$fileCompleteName,
+            file_get_contents($file->getRealPath())
+        );
+        return (object) array(
+            "base"=>$destinationPath, 
+            "fileName" => $fileCompleteName,
+            "relative" => $destinationPath.$fileCompleteName,
+            "full" =>Storage::disk($disk)->path($destinationPath).$fileCompleteName);
+    }
     public function show_my_roles()
     {
 //        $user = auth()->user();

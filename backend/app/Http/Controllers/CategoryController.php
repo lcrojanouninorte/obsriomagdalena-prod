@@ -168,9 +168,9 @@ class CategoryController extends Controller
     public function destroy($id)
     {
        try{ 
-        if($id==1){
+        /*if($id==1){
             return response()->error("No es posible eliminar la categoria de sensores en tiempo real");
-        }
+        }*/
         $user = Auth::user();
 
         $category = Category::find($id);

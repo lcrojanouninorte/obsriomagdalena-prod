@@ -82,8 +82,8 @@ class AuthController extends Controller
         * Then check if the user is authenticated. If true serve else
         */
         if (strpos($file, '.') !== false) {
-            //$user = Auth::user();
-            if ( true) {
+            $user = Auth::user();
+            if ( $user) {
                 /** Serve the file for the Auth User*/
                 return $this->returnFile($path, $email, $file);
             } else {
@@ -99,7 +99,7 @@ class AuthController extends Controller
     {
         //This method will look for the file and get it from drive
 
-        $path = storage_path('app/plataforma/'.$path.'/'.$email.'/'. $file);
+        $path = storage_path($path.'/'.$email.'/'. $file);
         try {
             $file = File::get($path);
             $type = File::mimeType($path);

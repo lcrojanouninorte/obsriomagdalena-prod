@@ -105,6 +105,9 @@ class StationController extends Controller
                 $image_file  =   $request->file('file');
                 $destinationPath = "";
                 $image_file_completeName = $image_file->getClientOriginalName();
+                $image_file_completeName = preg_replace('/\s/', '_', $image_file_completeName  );
+                $image_file_completeName = preg_replace('/[()]/', '', $image_file_completeName);
+       
                 $destinationPath = "ICONOS";
                 $path = $image_file->storeAs("ICONOS", $image_file_completeName, 'plataforma');
                 $station->icon =   URL::to('/').'/assets/files/shares/plataforma/'.$path;
@@ -166,6 +169,9 @@ class StationController extends Controller
             $columns = $request->input('columns');
             foreach ($files as $key => $file) {
                 $fileCompleteName = $file->getClientOriginalName();
+                $fileCompleteName = preg_replace('/\s/', '_', $fileCompleteName  );
+                $fileCompleteName = preg_replace('/[()]/', '', $fileCompleteName);
+        
                 $fileName = explode(".", $fileCompleteName)[0];
                 $extension = explode(".", $fileCompleteName)[1];
                 $path = $file->storeAs(

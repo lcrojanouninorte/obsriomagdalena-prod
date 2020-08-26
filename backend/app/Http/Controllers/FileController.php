@@ -77,7 +77,7 @@ class FileController extends Controller
             //ImageOptimizer::optimize($file->file_path,$file->file_path);
            /* Artisan::call('my_app:optimize_img 400x400 90 "'.$path->full.'"');*/
             
-        }
+         }
 
         if($file->save()){
       

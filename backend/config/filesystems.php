@@ -42,10 +42,10 @@ return [
     */
 
     'disks' => [
-        'profile' => [
+        'profiles' => [
             'driver' => 'local',
-            'root' => storage_path('profile'),
-            'url' => env('APP_URL') . '/storage',
+            'root' => storage_path('profiles'),
+            'url' => env('APP_URL') . '/profiles',
             'visibility' => 'private',
         ],
         'plataforma' => [
