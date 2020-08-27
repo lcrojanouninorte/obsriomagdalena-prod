@@ -27,6 +27,8 @@ class StationController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
+     
     public function index()
     {
         //retornar estaciones con archivos filtrados por tipo imagen o otro archivo
@@ -152,7 +154,9 @@ class StationController extends Controller
     'columns' => 'required',
     'id' => 'required'
     ]);
-
+    $imagenes = Array("png","jpg","gif","tiff","bpm","svg","jpeg");
+    $imgFiles = [];
+    $otherFiles = [];
 
     try {
         $station=[];
@@ -186,26 +190,39 @@ class StationController extends Controller
                 $file->icon = $extension;
                 $file->name = $fileName;
                 $file->active = true;
-           
+
+                
+                
+                
                 if($file->save()){
+                    if(in_array(strtolower($file->icon), $imagenes)){
+                            $imgFiles[] = $file;                    
+                    }else{
+                            $otherFiles[] = $file;
+                                    
+                    }
                     //uodate log
                     $log->table_id = $file->id;
                     $log->desc = $log->desc." FILES ($file->id, $file->name).";
                     
                 }
+
             }
             $log->save();
+            
         }else{
             return response()->json("Por favor agrega archivos", 500);
         }
-
         
-    // });
+        
+        // });
     } catch (Exception $e) {
         return response()->error($e->getMessage());
     }
-
+    
     $station =  Station::find($request->input('id'));
+    $station->imgFiles = $imgFiles;
+    $station->otherFiles = $otherFiles;
     return response()->success($station);
     }
     /**

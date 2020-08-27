@@ -80,7 +80,6 @@ class FileController extends Controller
          }
 
         if($file->save()){
-      
             $log->table_id = $file->id;
             $log->desc = $log->desc." Layer ($file->id, $file->name).";
             $log->save();    return response()->json($file,200);
