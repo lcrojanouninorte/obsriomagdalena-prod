@@ -311,7 +311,11 @@ class LayerController extends Controller
             }else{
                 unset($styleFile->layers[$key]);
             }
-           // $layer->layout = (object) array("visibility" => "visible");
+            // For layer visibility in a
+            $layout =  [ //Crear layout generic:
+                "visibility" => "visible"
+            ];
+            $layer->layout = $layout;
             
             // Know fixes:
             if(isset($layer->layout->{'text-size'}) ){
@@ -696,6 +700,8 @@ class LayerController extends Controller
         $user = Auth::user();
         $layer = Layer::find($id);
         
+        //return response()->json($request->input('state'),500);
+
         $layer->state =  $request->input('state');
         //Delete folder and files
         if($layer->save()){
