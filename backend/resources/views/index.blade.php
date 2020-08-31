@@ -5,12 +5,12 @@
     <meta charset="utf-8">
     <title>Observatorio del Río Magdalena</title>
 
-    <base href="/">
+    <base href="/plataforma/">
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
-</head>
+<link rel="stylesheet" href="styles.9de96ea660432a0d4ce2.css"></head>
 
 <body>
     <ngx-app>Cargando...</ngx-app>
@@ -114,6 +114,6 @@
         <div class="blob blob-5"></div>
     </div>
 
-<script src="runtime.js" defer></script><script src="polyfills-es5.js" nomodule defer></script><script src="polyfills.js" defer></script><script src="styles.js" defer></script><script src="scripts.js" defer></script><script src="vendor.js" defer></script><script src="main.js" defer></script></body>
+<script src="runtime.3878981c0c8310bb5954.js" defer></script><script src="polyfills-es5.918693e9e7b9b0681f2b.js" nomodule defer></script><script src="polyfills.4ae1d77ea1b35f53d168.js" defer></script><script src="scripts.1365b06b517999d3a632.js" defer></script><script src="main.3c1ab381779c6314f7b2.js" defer></script></body>
 
 </html>

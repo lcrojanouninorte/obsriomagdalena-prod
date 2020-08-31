@@ -15,8 +15,8 @@ class CreateCategoriesTable extends Migration
         Schema::create('categories', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('name');
-            $table->string('public_desc');
-            $table->string('admin_desc');
+            $table->longText('public_desc');
+            $table->longText('admin_desc');
             $table->string('state');
             $table->string('icon');
             $table->string('type');

@@ -70,7 +70,7 @@ class LayerController extends Controller
                 $layer =  Layer::find($request->input('id'));
                 $log->desc = "User ($user->id, $user->name): UPDATE  ";
                 $layer->state =  (int) $request->input('state') ;
-                
+                $layer->type =  $request->input('type') ;
                 $layer->name = trim($request->input('name'));
                 $layer->category_id = $request->input('category_id');
                 $layer->sourceType = $request->input('sourceType');
@@ -88,6 +88,7 @@ class LayerController extends Controller
                 $layer->sourceType = $request->input('sourceType');
                 $layer->icon = "layer.svg";
                 $layer->desc = trim($request->input('desc'));
+                $layer->type =  $request->input('type') ;
             }
 
             // Set Convention
@@ -137,7 +138,6 @@ class LayerController extends Controller
                         $jsonString = file_get_contents($path->full);
                         $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
                         $layer->glLayers =  $this->getMBStyle($jsonString,$layer);
-                        
                         break;
                     case 'qgis2web': 
                         // Archivo .rar local
@@ -159,27 +159,30 @@ class LayerController extends Controller
                         break;
                 }
             }else{
-                //No dependen de archivo, se deben construir los estilos base.
-                switch ($type) { 
-                    case 'url': // Archivo .geojson desde una url
-                        $layer->source = $request->input('source'); 
-                        $glSource->data = $layer->source;
-                        $jsonString = file_get_contents($request->input('source'));
-                        $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
-                        $layer->glLayers = $this->getMBStyle($jsonString,$layer);    
-                         break;
-                    case 'api_icons': // Api con al menos lat lon y data
-                    case 'api':
-                        $layer->source = $request->input('url'); 
-                        $glSource->data = $this->ApitoGeoJSON($layer->source);
-                        $jsonString = json_encode($glSource->data);
-                        $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
-                        $layer->glLayers = $this->getMBStyle($jsonString,$layer);
-                        break;
-                    default:
-                        //return response()->json($layer, 500);
-                        break;
+                //No dependen de archivo, se deben construir los estilos base     
+                if(!isset($layer->source) || $layer->source != $request->input('source')){
+                    switch ($type) { 
+                        case 'url': // Archivo .geojson desde una url
+                            $layer->source = $request->input('source'); 
+                            $glSource->data = $layer->source;
+                            $jsonString = file_get_contents($request->input('source'));
+                            $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
+                            $layer->glLayers = $this->getMBStyle($jsonString,$layer);    
+                                break;
+                        case 'api_icons': // Api con al menos lat lon y data
+                        case 'api':
+                            $layer->source = $request->input('url'); 
+                            $glSource->data = $this->ApitoGeoJSON($layer->source);
+                            $jsonString = json_encode($glSource->data);
+                            $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
+                            $layer->glLayers = $this->getMBStyle($jsonString,$layer);
+                            break;
+                        default:
+                            //return response()->json($layer, 500);
+                            break;
+                    }
                 }
+                 
                
 
             }
@@ -607,7 +610,7 @@ class LayerController extends Controller
         return response()->success($layer);
         //
              /*
-CODIGO PARA UNZIP Y ENCONTRAR UN ARCHIVO ZIP RAP COMPRIMIDO
+          CODIGO PARA UNZIP Y ENCONTRAR UN ARCHIVO ZIP RAP COMPRIMIDO
                     //PASO 2: Unzip
                     $output=""; 
                     $return="";
@@ -707,7 +710,53 @@ CODIGO PARA UNZIP Y ENCONTRAR UN ARCHIVO ZIP RAP COMPRIMIDO
         }
         
     }
+    public function updateExclusions(Request $request, $id)
+    {
+        //
 
+        $user = Auth::user();
+        $layer = Layer::find($id);
+        $new_exclusion = $request->input('exclusions');
+        $old_exclusion =  json_decode($layer->exclusions);
+        $old_exclusion = $old_exclusion? $old_exclusion : [];
+
+        // 1. find diff from old to new ex
+        $ex_diff = array_merge(array_diff($new_exclusion, $old_exclusion), array_diff($old_exclusion, $new_exclusion));
+      
+        // 2. Update other layers mutual exlusion
+        foreach ($ex_diff as $key => $ex) {
+            // finad each layer, and toggle exclusion
+            $layer_to_exclude = Layer::find($ex);
+            $lte_ex = json_decode($layer_to_exclude->exclusions);
+            $lte_ex = $lte_ex ? $lte_ex : [];
+            
+
+            $index = array_search($layer->id,$lte_ex);
+
+            if($index !== false){
+                array_splice($lte_ex, $index, 1);
+            }else{
+                array_push( $lte_ex, $layer->id);
+            }
+            $layer_to_exclude->exclusions = json_encode($lte_ex);
+            $layer_to_exclude->save();
+        }
+        
+
+        $layer->exclusions =  json_encode($request->input('exclusions'));
+        //Delete folder and files
+        if($layer->save()){
+            $log = new Log;
+            $log->desc = "($user->id, $user->name): Update exclusions ($layer->id, $layer->name).";
+            $log->user_id = $user->id;
+            $log->table = "layers";
+            $log->table_id = $layer->id;
+            $log->save();
+            return response()->json($layer,200);
+
+        }
+        
+    }
     /**
      * Remove the specified resource from storage.
      *

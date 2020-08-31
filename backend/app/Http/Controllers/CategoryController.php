@@ -32,7 +32,7 @@ class CategoryController extends Controller
     public function index()
     {
         //
-        $categories = Category::with("layers")->get();
+        $categories = Category::with("layers")->orderBy('id', 'DESC')->get();
       
         //1. Crear Categoria
         //TODO: por cada tipo de estación

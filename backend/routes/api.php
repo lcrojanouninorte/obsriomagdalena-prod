@@ -80,6 +80,8 @@ Route::group(['middleware' => ['auth:api']], function ($api) {
     
     $api->resource('layers', 'LayerController', ['except'=> ['index','show']]);
     $api->put('layers/state/{id}', 'LayerController@updateState'); 
+    $api->put('layers/exclusions/{id}', 'LayerController@updateExclusions'); 
+
     $api->resource('categories', 'CategoryController', ['except'=> ['index']]);
 
     //Get Auth User
