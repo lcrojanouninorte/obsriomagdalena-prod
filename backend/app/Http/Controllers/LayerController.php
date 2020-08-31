@@ -389,7 +389,8 @@ class LayerController extends Controller
             "base"=>$destinationPath, 
             "fileName" => $fileCompleteName,
             "relative" => $destinationPath.$fileCompleteName,
-            "full" =>$file->getRealPath());
+            "full" =>str_replace("\\","\/", Storage::disk('plataforma')->path('/').$destinationPath.$fileCompleteName));
+
     }
 
     public function convert($from, $to)

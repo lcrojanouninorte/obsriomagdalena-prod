@@ -36,7 +36,7 @@ class PeopleController extends Controller
     public function dirs()
     {
         // 
-        $people = People::where('tag','!=', 0)->get();
+        $people = People::where('tag','!=', 0)->orderBy('order')->get();
         return response()->json($people, 200);
 
     }
@@ -75,11 +75,7 @@ class PeopleController extends Controller
             $people = new People;
             
              
-            $people->name     =$request->input('name');
-            $people->title      = $request->input('title');
-            $people->tag      = $request->input('tag');
-            $people->rg     =$request->input('rg');
-            $people->order = $request->input('order');
+            
             $log = new Log;
             $log->user_id = $user->id;
             $log->table = "people";
@@ -92,13 +88,19 @@ class PeopleController extends Controller
             }else{
                 $log->desc = "User ($user->id, $user->name): ADD  ";
             }
-            
+            $people->name     =$request->input('name');
+            $people->title      = $request->input('title');
+            $people->tag      = $request->input('tag');
+            $people->rg     =$request->input('rg');
+            $people->order = $request->input('order');
          
             if($request->hasFile('file') ){
                 $file = $request->file('file');
                 $destinationPath ="@People/"; //./relative to mapbox
                 $path = $this->storeFile($file,  $destinationPath);
                 //Resize and improve png:
+
+             //   return response()->json($path , 500) ;
                 ImageOptimizer::optimize($path->full, $path->full);
                 Artisan::call('my_app:optimize_img 100x100 80 "'.$path->full.'"');
                 $people->avatar = URL::to('/').'/assets/files/shares/plataforma/'. $path->relative;
@@ -185,21 +187,21 @@ class PeopleController extends Controller
 
     public function storeFile($file, $destinationPath){
         $fileCompleteName = $file->getClientOriginalName();
-        $fileCompleteName = preg_replace('/\s/', '_', $fileCompleteName  );
-        $fileCompleteName = preg_replace('/[()]/', '', $fileCompleteName);
-
         $fileName = explode(".", $fileCompleteName)[0];
         $extension = explode(".", $fileCompleteName)[1];
+        $fileCompleteName = preg_replace('/\s/', '_', $fileCompleteName  );
+        $fileCompleteName = preg_replace('/[()]/', '', $fileCompleteName);
 
         
         $file_saved = Storage::disk('plataforma')->put(
             $destinationPath.$fileCompleteName,
             file_get_contents($file->getRealPath())
         );
+
         return (object) array(
             "base"=>$destinationPath, 
-            "fileName" => $fileName.".".$extension,
-            "relative" => $destinationPath.$fileName.".".$extension,
-            "full" =>$file->getRealPath());
+            "fileName" => $fileCompleteName,
+            "relative" => $destinationPath.$fileCompleteName,
+            "full" =>str_replace("\\","\/", Storage::disk('plataforma')->path('/').$destinationPath.$fileCompleteName));
     }
 }
