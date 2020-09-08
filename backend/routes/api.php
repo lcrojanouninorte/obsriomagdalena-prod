@@ -27,6 +27,8 @@ Passport::routes(function ($router) {
 Route::group(['middleware' => ['api']], function ($api) {
     //ORMA 2020
     $api->get('stations', 'StationController@index');
+    $api->get('/stations/rows', 'StationController@getRows');
+
     $api->get('columns', 'ColumnController@index');//AKA variables de una estacion
     $api->get('layers', 'LayerController@index');
     $api->get('layers/{id}', 'LayerController@show');

@@ -8,6 +8,8 @@ use App\Http\Requests;
 
 use App\Layer;
 
+use App\Station;
+
 use App\Category;
 
 use App\Log;
@@ -32,26 +34,130 @@ class CategoryController extends Controller
     public function index()
     {
         //
+        $this->stations(); // Will update stations based layers
         $categories = Category::with("layers")->orderBy('id', 'DESC')->get();
       
-        //1. Crear Categoria
-        //TODO: por cada tipo de estación
-        //update migration with gategory_id and group.
        
-       /* foreach ($groups as $key => $group) {
-            //1. get group CategoryId.
-            //2. create layer from group name
-            //3. with eac station create glsource.
-            //4. create gllayer 
-            //set layer to category
-        }
-        //Añadir category Estaciones.
-        //Crear layer de staciones y añadirlo a categories.layers
-        //Layer de estaciones puede ser por tipo*/
+      
         return response()->json($categories, 200);
 
     }
+    public function stations()
+    {    
+        // will create or update a layer, based on stations types.
 
+        //retornar estaciones con archivos filtrados por tipo imagen o otro archivo
+        $stations_types = Station::with("files")->get()->groupBy('type');
+        $imagenes = Array("png","jpg","gif","tiff","bpm","svg","jpeg");
+        $response = [];
+        foreach ($stations_types as $key => $stations) {
+            $stations_source = (object)[
+                'source_name' => $key,
+                'glSource' => [],
+                'glLayers' => [],
+                'data' => []
+            ];
+            $glSource =  (object) [
+                'id' => $key,
+                'type' => 'geojson',
+                'data' =>  (object)[
+                  'type' => 'FeatureCollection',
+                  'features'=> []
+                ],
+            ];
+            $glLayers = (object)[
+                'id'=>  $key,
+                'type'=> 'symbol',
+                'source'=> $key,
+                'layout'=> (object) [
+                    'icon-image'=> '{icon}',
+                    'icon-size'=> 0.7,
+                    'visibility'=> 'visible',
+                    'text-anchor'=> 'left',
+                    'text-offset'=> [1,0],
+                    'text-field'=> '{name}',
+                ],
+            ];
+            $features =[];
+            foreach ($stations as $key => $station) {
+                $imgFiles = [];
+                $otherFiles = [];
+                foreach ($station->files as $key => $file) {
+                    if(in_array(strtolower($file->icon), $imagenes)){
+                        $imgFiles[] = $file;                    
+                    }else{
+                        $otherFiles[] = $file;
+                       
+                    }
+                }
+                $station->imgFiles = $imgFiles;
+                $station->otherFiles = $otherFiles;
+                if($station->state == true){
+
+                    // GeoJson
+                    array_push($features, (object) [
+                          'type'=> 'Feature',
+                          'geometry'=>  (object)[
+                            'type'=> 'Point',
+                            'coordinates' => [$station->longitude, $station->latitude],
+                          ],
+                          'properties'=>  (object) [
+                            'id'=> $station->id,
+                            'icon' => $station->icon,
+                            'name'=> $station->name,
+                            'type'=> 'stations',
+                          ]
+                    ]);
+                }
+
+            }
+            $glSource->data->features = $features;
+            $stations_source->glSource = $glSource;
+            $stations_source->glLayers = $glLayers;
+            $stations_source->data = $stations;
+            // Create or update Especial category for stations            
+            $category = Category::where("name", "=", "Estaciones")->first();
+            if($category == null){
+                $category = new Category;
+                $category->name = "Estaciones";
+            } 
+            $category->public_desc = " ";
+            $category->admin_desc = "Categoria Especial para Estaciones";
+            $category->state = 1;
+            $category->icon = "https://www.gravatar.com/avatar/dddc2d4ccab2b69066444945?d=identicon&r=g&s=48";
+            $category->type = "checkbox"; 
+            if(!$category->save()){
+                return false;
+            }
+
+            // Check if layer exist, if not, create
+            $layer = Layer::where("source", "=", $stations_source->source_name)->first();
+            if($layer == null){
+                $layer = new Layer;
+            } 
+            $layer->category_id = $category->id; // todo CHECK CATEGORY
+            $layer->name = $stations_source->source_name;
+            $layer->source = $stations_source->source_name;
+            $layer->sourceType = "stations";
+            $layer->icon = "layer.svg";
+            $layer->state = 1;
+            $layer->glSource = json_encode($stations_source->glSource);
+            
+            $layer->desc = " ";
+            $layer->convention =  null;
+            $layer->type = "points";
+            $layer->exclusions = "[]";
+            if(!$layer->save()){
+                return false;
+            }else{
+                $stations_source->glLayers->layer_id = $layer->id;
+                $layer->glLayers = json_encode([$stations_source->glLayers]);
+                $layer->save();
+            }
+          
+        }
+        return true;
+    }
     /**
      * Show the form for creating a new resource.
      *

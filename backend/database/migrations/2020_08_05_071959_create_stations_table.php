@@ -20,6 +20,7 @@ class CreateStationsTable extends Migration
             $table->string('longitude');
             $table->string('state');
             $table->string('icon');
+            $table->string('type');
             $table->timestamps();
         });
     }

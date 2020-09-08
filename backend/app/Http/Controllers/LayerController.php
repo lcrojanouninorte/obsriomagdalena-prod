@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Requests;
 use App\Layer;
+
 use Auth;
 use App\Category;
 use App\Log;
@@ -27,10 +28,13 @@ class LayerController extends Controller
     {
         //
         $layers = Layer::get()->groupBy('category_id');
+
+       
+        
         return response()->success(compact('layers'));
 
     }
-
+    
     /**
      * Show the form for creating a new resource.
      *
@@ -95,9 +99,10 @@ class LayerController extends Controller
             if($request->hasFile('fileConv') ){
                 $fileConv = $request->file('fileConv');
                 $category = Category::find($layer->category_id);
-                $cat_name = $category->name;
-                $layer_name = $layer->name;
-                $destinationPath ="LAYERS/$cat_name/$layer_name/"; //./relative to mapbox
+               // $cat_name = $category->name;
+               // $layer_name = $layer->name;
+               // $destinationPath ="LAYERS/$cat_name/$layer_name/"; //./relative to mapbox
+                $destinationPath ="LAYERS/$layer->id/"; //./relative to mapbox
                 $path = $this->storeFile($fileConv,  $destinationPath);
                 //Resize and improve png:
                 ImageOptimizer::optimize($path->full, $path->full);
@@ -123,9 +128,14 @@ class LayerController extends Controller
                 $file = null;
                 $file  = $request->file('file');
                 $category = Category::find($layer->category_id);
+                
+               /* 
+               // changed to only id, to put complex names
                 $cat_name = $category->name;
                 $layer_name = $layer->name;
                 $destinationPath = "LAYERS/$cat_name/$layer_name/"; //./relative to mapbox
+                */
+                $destinationPath ="LAYERS/$layer->id/";
                 $jsonString =""; //Contiene datos de cada feature para luego dar estilos
                 
                 switch ($type) { 

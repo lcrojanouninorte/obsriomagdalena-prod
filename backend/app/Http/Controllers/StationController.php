@@ -31,6 +31,86 @@ class StationController extends Controller
      
     public function index()
     {
+        // Not used 
+        //retornar estaciones con archivos filtrados por tipo imagen o otro archivo
+        $stations_types = Station::with("files")->get()->groupBy('type');
+        $imagenes = Array("png","jpg","gif","tiff","bpm","svg","jpeg");
+
+        $response = [];
+        foreach ($stations_types as $key => $stations) {
+            $stations_source = (object)[
+                'source_name' => $key,
+                'glSource' => [],
+                'glLayers' => [],
+                'data' => []
+            ];
+            $glSource =  (object) [
+                'type' => 'geojson',
+                'data' =>  (object)[
+                  'type' => 'FeatureCollection',
+                  'features'=> []
+                ],
+            ];
+            $glLayers = (object)[
+                'id'=>  $key,
+                'type'=> 'symbol',
+                'source'=> $key,
+                'layout'=> (object) [
+                    'icon-image'=> '{icon}',
+                    'icon-size'=> 0.7,
+                    'visibility'=> 'visible',
+                    'text-anchor'=> 'left',
+                    'text-offset'=> [1,0],
+                    'text-field'=> '{name}',
+                ],
+            ];
+
+            $features =[];
+            
+            foreach ($stations as $key => $station) {
+                $imgFiles = [];
+                $otherFiles = [];
+                foreach ($station->files as $key => $file) {
+                    if(in_array(strtolower($file->icon), $imagenes)){
+                        $imgFiles[] = $file;                    
+                    }else{
+                        $otherFiles[] = $file;
+                       
+                    }
+                }
+                $station->imgFiles = $imgFiles;
+                $station->otherFiles = $otherFiles;
+                if($station->state == true){
+
+                    // GeoJson
+                    array_push($features, (object) [
+                          'type'=> 'Feature',
+                          'geometry'=>  (object)[
+                            'type'=> 'Point',
+                            'coordinates' => [$station->longitude, $station->latitude],
+                          ],
+                          'properties'=>  (object) [
+                            'id'=> $station->id,
+                            'icon' => $station->icon,
+                            'name'=> $station->name,
+                          ]
+                    ]);
+                }
+
+            }
+            
+                    
+            
+            $glSource->data->features = $features;
+            $stations_source->glSource = $glSource;
+            $stations_source->glLayers = $glLayers;
+            $stations_source->data = $stations;
+            array_push($response,  $stations_source);
+        }
+        return response()->json($response,200);
+    }
+    public function getRows()
+    {
         //retornar estaciones con archivos filtrados por tipo imagen o otro archivo
         $stations = Station::with("files")->get();
         $imagenes = Array("png","jpg","gif","tiff","bpm","svg","jpeg");
@@ -43,15 +123,21 @@ class StationController extends Controller
                     $imgFiles[] = $file;                    
                 }else{
                     $otherFiles[] = $file;
-                   
+                    
                 }
             }
             $station->imgFiles = $imgFiles;
             $station->otherFiles = $otherFiles;
-        }        
+ 
+
+        }
+        
+                
+            
+           
+        
         return response()->json($stations,200);
     }
-
     /**
      * Show the form for creating a new resource.
      *
