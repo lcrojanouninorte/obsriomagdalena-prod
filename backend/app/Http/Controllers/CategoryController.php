@@ -76,6 +76,9 @@ class CategoryController extends Controller
                     'text-anchor'=> 'left',
                     'text-offset'=> [1,0],
                     'text-field'=> '{name}',
+                   
+                    'text-optional' => true,
+                    'icon-allow-overlap' => true
                 ],
             ];
             $features =[];
