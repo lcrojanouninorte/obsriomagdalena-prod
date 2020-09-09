@@ -66,7 +66,7 @@
             border-radius: 50%;
             box-shadow: 0 3px 3px 0 rgb(45, 75, 77);
             transform: translate3d(0, 0, 0);
-            animation: spin 2s linear infinite
+            animation: spin 1s linear infinite
         }
         
         .spinner div:first-child:after,
@@ -83,7 +83,7 @@
             bottom: 5px;
             box-shadow: 0 3px 3px 0 rgb(111, 186, 211);
             -webkit-animation: spin 3s linear infinite;
-            animation: spin 3s linear infinite
+            animation: spin 2s linear infinite
         }
         
         .spinner div:first-child:after {
@@ -114,6 +114,6 @@
         <div class="blob blob-5"></div>
     </div>
 
-<script src="runtime.ca4850c355ab23a857ba.js" defer></script><script src="polyfills-es5.c5213a0708d21636c446.js" nomodule defer></script><script src="polyfills.4ae1d77ea1b35f53d168.js" defer></script><script src="scripts.1365b06b517999d3a632.js" defer></script><script src="main.f5ee8bccc14dcb340e2b.js" defer></script></body>
+<script src="runtime.3092554287a6bb1453ff.js" defer></script><script src="polyfills-es5.c5213a0708d21636c446.js" nomodule defer></script><script src="polyfills.4ae1d77ea1b35f53d168.js" defer></script><script src="scripts.1365b06b517999d3a632.js" defer></script><script src="main.1d14e7374b7dff8361bc.js" defer></script></body>
 
 </html>
