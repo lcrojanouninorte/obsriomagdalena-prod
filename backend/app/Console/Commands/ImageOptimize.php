@@ -65,7 +65,7 @@ class ImageOptimize extends Command
             . $from
             .'" '
             . '-resize '.$size
-            .' '
+            .'\> '
             . '-sampling-factor 4:2:0 -strip -quality '.$quality
             .' "'
             . $from.'"';

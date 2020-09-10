@@ -69,6 +69,9 @@ class CategoryController extends Controller
                 'id'=>  $key,
                 'type'=> 'symbol',
                 'source'=> $key,
+                'paint'=> (object) [
+                    "icon-opacity"=> 0.7
+                ],
                 'layout'=> (object) [
                     'icon-image'=> '{icon}',
                     'icon-size'=> 0.7,
@@ -78,7 +81,7 @@ class CategoryController extends Controller
                     'text-field'=> '{name}',
                    
                     'text-optional' => true,
-                    'icon-allow-overlap' => true
+                    'icon-allow-overlap' => false
                 ],
             ];
             $features =[];
