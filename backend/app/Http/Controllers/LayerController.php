@@ -285,7 +285,7 @@ class LayerController extends Controller
             $geojsonFile = str_replace('var '.$sourceVar[0][0].' = '  , '', $geojsonFile); //Delete var ... =
             
             // 3.4 Store edited geojson:
-            $storePath = $filePath->base.$srcVarName.'.js';
+            $storePath = $layer_id."_".$filePath->base.$srcVarName.'.js';
             Storage::disk('plataforma')->put($storePath, $geojsonFile);
             $styleFile = json_decode(str_replace($sourceVar[0][0], '"'. URL::to('/').'/assets/files/shares/plataforma/'.$storePath.'"', $styleFile));       
         } else { 
@@ -301,14 +301,14 @@ class LayerController extends Controller
                 
             //set image as source
             $styleFile->sources->$srcVarName->url = URL::to('/').'/assets/files/shares/plataforma/'.$pngPath->relative;
-            $storePath = $styleFile->sources->$srcVarName->url;
+            $storePath =  $layer_id."_".$styleFile->sources->$srcVarName->url;
             
             //fix lat long in source TODO: check if always happen
             $coordinates = $styleFile->sources->$srcVarName->coordinates;
             $styleFile->sources->$srcVarName->coordinates = array_reverse( $coordinates);
         }
 
-        //4. Add unic identifiers to soruces and layers
+        //4. Add unique identifiers to soruces and layers
         //add unic id to source and layers:
         $styleFile->sources->$srcVarName->id = $srcVarName.$layer_id;
         $glLayers = $styleFile->layers;
