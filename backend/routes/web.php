@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 Route::get('/', 'MiscController@serveApp');
+Route::get('/plataforma', 'MiscController@serveApp');
 Route::get('/unsupported-browser', 'MiscController@unsupported');
 
  

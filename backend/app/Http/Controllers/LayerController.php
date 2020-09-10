@@ -105,8 +105,8 @@ class LayerController extends Controller
                 $destinationPath ="LAYERS/$layer->id/"; //./relative to mapbox
                 $path = $this->storeFile($fileConv,  $destinationPath);
                 //Resize and improve png:
+                Artisan::call('my_app:optimize_img 300x300 96 "'.$path->full.'"');
                 ImageOptimizer::optimize($path->full, $path->full);
-                Artisan::call('my_app:optimize_img 400x400 90 "'.$path->full.'"');
                 $layer->convention = URL::to('/').'/assets/files/shares/plataforma/'. $path->relative;
             }
             //get file and destination path
@@ -285,7 +285,7 @@ class LayerController extends Controller
             $geojsonFile = str_replace('var '.$sourceVar[0][0].' = '  , '', $geojsonFile); //Delete var ... =
             
             // 3.4 Store edited geojson:
-            $storePath = $filePath->base.$srcVarName.'.js';
+            $storePath = $filePath->base.$srcVarName."_".$layer_id.'.js';
             Storage::disk('plataforma')->put($storePath, $geojsonFile);
             $styleFile = json_decode(str_replace($sourceVar[0][0], '"'. URL::to('/').'/assets/files/shares/plataforma/'.$storePath.'"', $styleFile));       
         } else { 
@@ -296,19 +296,19 @@ class LayerController extends Controller
             
             //Resize and improve png:
             $pngPath= $this->getFile($srcVarName.'.png', $archive,  $filePath->base);
+            Artisan::call('my_app:optimize_img 4000x4000 90 "'.$pngPath->full.'"');
             ImageOptimizer::optimize($pngPath->full, $pngPath->full);
-            Artisan::call('my_app:optimize_img 4000x4000 98 "'.$pngPath->full.'"');
                 
             //set image as source
             $styleFile->sources->$srcVarName->url = URL::to('/').'/assets/files/shares/plataforma/'.$pngPath->relative;
-            $storePath = $styleFile->sources->$srcVarName->url;
+            $storePath =  $styleFile->sources->$srcVarName->url;
             
             //fix lat long in source TODO: check if always happen
             $coordinates = $styleFile->sources->$srcVarName->coordinates;
             $styleFile->sources->$srcVarName->coordinates = array_reverse( $coordinates);
         }
 
-        //4. Add unic identifiers to soruces and layers
+        //4. Add unique identifiers to soruces and layers
         //add unic id to source and layers:
         $styleFile->sources->$srcVarName->id = $srcVarName.$layer_id;
         $glLayers = $styleFile->layers;
