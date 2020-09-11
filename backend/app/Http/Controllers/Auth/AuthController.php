@@ -164,12 +164,12 @@ class AuthController extends Controller
                 'password'=> $request->password,
                 'email'=>$user->email
             );
-
+/*
             Mail::send('emails.userverification', $data, function ($m) use ($user) {
                 $m->from('obsriomagdalena@uninorte.edu.co', 'Observatorio del Río Magdalena ');
                 $m->to($user->email)->subject('Confirmación de Registro en Plataforma OBS');
             });
-
+*/
             
             return response()->json($user, 200);
         }catch (\Exception $e) {
@@ -230,12 +230,12 @@ class AuthController extends Controller
         ]);
 
         $token = $reset->token;
-
+/*
         Mail::send('emails.reset_link', compact('email', 'token'), function ($mail) use ($email) {
             $mail->to($email)
             ->from('noreply@example.com')
             ->subject('Password reset link');
-        });
+        });*/
 
         return response()->json("Se ha enviado un Correo con las instrucciones",200);
     }
