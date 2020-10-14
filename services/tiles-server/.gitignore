@@ -1,5 +1,6 @@
 .DS_Store
 *.iws
+tileserver-gl/mbtiles
 tileserver-gl/fonts
 tile-fetcher/node_modules
 tile-fetcher/tiles
