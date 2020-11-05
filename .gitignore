@@ -1,5 +1,4 @@
 .DS_Store
 *.iws
 *.mbtiles
-services/tileserver-gl/fonts/*
-services/tileserver-gl/mbtiles/*
+services/tileserver-gl/fonts
