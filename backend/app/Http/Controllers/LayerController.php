@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Requests;
 use App\Layer;
+use App\Station;
 
 use Auth;
 use App\Category;
@@ -27,11 +28,14 @@ class LayerController extends Controller
     public function index()
     {
         //
-        $layers = Layer::get()->groupBy('category_id');
+        // layer can be fixed, public and has a state. state not need to be persisted, but initial value is "ifFixed"       
+        $user = Auth::user();
 
-       
         
-        return response()->success(compact('layers'));
+        $layers = Layer::publics()->with("category.parent.parent")->orderBy("category_id")->get();
+        //TODO: actualizar capa estaciones. stations_features($layer,$stations_group)
+        
+        return response()->success($layers);
 
     }
     
@@ -73,7 +77,7 @@ class LayerController extends Controller
             if($request->has('id') && $request->input('id') != ''){
                 $layer =  Layer::find($request->input('id'));
                 $log->desc = "User ($user->id, $user->name): UPDATE  ";
-                $layer->state =  (int) $request->input('state') ;
+                $layer->isFixed =  (int) $request->input('isFixed') ;
                 $layer->type =  $request->input('type') ;
                 $layer->name = trim($request->input('name'));
                 $layer->category_id = $request->input('category_id');
@@ -88,7 +92,7 @@ class LayerController extends Controller
                 $layer->id = $tempId;
                 $layer->name = trim($request->input('name'));
                 $layer->category_id = $request->input('category_id');
-                $layer->state = false;
+                $layer->isFixed = false;
                 $layer->sourceType = $request->input('sourceType');
                 $layer->icon = "layer.svg";
                 $layer->desc = trim($request->input('desc'));
@@ -121,8 +125,7 @@ class LayerController extends Controller
 
             if($request->hasFile('file') ){
                 //Crear glLayer y glSource para no sobrecargar al cliente
-                //TODO: otra opciones es convertir (sld o qml a MBstyle)->gllayer y (Shapefile a Geojson)>glsource
-                //GLSOURCE
+            
                 
                 $destinationPath = "";
                 $file = null;
@@ -137,7 +140,6 @@ class LayerController extends Controller
                 */
                 $destinationPath ="LAYERS/$layer->id/";
                 $jsonString =""; //Contiene datos de cada feature para luego dar estilos
-                
                 switch ($type) { 
                 // si es geojson, se debe construir el stilo
                 // si es qgis, el estilo será tomado de los archivos subidos.
@@ -149,11 +151,7 @@ class LayerController extends Controller
                         $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
                         $layer->glLayers =  $this->getMBStyle($jsonString,$layer);
                         break;
-                    case 'qgis2web': 
-                        // Archivo .rar local
-                        // TODO:
-                        // por el momento solo se debe agregar elleno sencillo
-                        // subir max_execution_time
+                    case 'qgis2web': //Deprecaeted
                         // instalar binarios png y magick image
                         
                         $storedZip = $this->storeFile($file,  $destinationPath);
@@ -163,14 +161,33 @@ class LayerController extends Controller
                         $layer->source = $qgis2web->source;
                         $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
                         $layer->glLayers =  json_encode($qgis2web->glLayers, JSON_UNESCAPED_SLASHES);
-                        break;        
+                        break; 
+                    case 'raster':
+                        $storedZip = $this->storeFile($file,  $destinationPath);
+                        $raster = $this->gdal2mbtiles($storedZip,$layer->id,'raster', '.tif');
+                        $glSource = $raster->glSource;
+                        $layer->source = $raster->source;
+                        $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
+                        $layer->glLayers =  json_encode($raster->glLayers, JSON_UNESCAPED_SLASHES);
+                    break; 
+                    case 'shape': 
+                        $storedZip = $this->storeFile($file,  $destinationPath);
+                        $shape = $this->gdal2mbtiles($storedZip,$layer->id,'vector', '.shp');
+                  //      return response()->error($shape, 500);
+
+                        $glSource = $shape->glSource;
+                        $layer->source = $shape->source;
+                        $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
+                        $layer->glLayers =  json_encode($shape->glLayers, JSON_UNESCAPED_SLASHES);
+                        break; 
+                   
                     default:
                         return response()->error($layer, 500);
                         break;
                 }
             }else{
                 //No dependen de archivo, se deben construir los estilos base     
-                if(!isset($layer->source) || $layer->source != $request->input('source')){
+                if(!isset($layer->source) || $layer->source != $request->input('source') || $layer->source != $request->input('stations_group')){
                     switch ($type) { 
                         case 'url': // Archivo .geojson desde una url
                             $layer->source = $request->input('source'); 
@@ -186,7 +203,15 @@ class LayerController extends Controller
                             $jsonString = json_encode($glSource->data);
                             $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
                             $layer->glLayers = $this->getMBStyle($jsonString,$layer);
-                            break;
+                            //Load Json is exist
+                             break;
+                        case 'stations':
+                            $stations_group = trim($request->input('stations_group'));
+                            $stations = $this->stations_features($layer, $stations_group);
+                            $layer->source = $stations->source;
+                            $layer->glSource = json_encode( $stations->glSource,JSON_UNESCAPED_SLASHES);
+                            $layer->glLayers =  json_encode($stations->glLayers, JSON_UNESCAPED_SLASHES);
+                        break;
                         default:
                             //return response()->json($layer, 500);
                             break;
@@ -257,105 +282,106 @@ class LayerController extends Controller
         
     }
 
-    public function qgis2web($filePath, $layer_id){
-        // 1. Descompress file
-        $archive = UnifiedArchive::open($filePath->full);
-        
-        // 2 . Get Style.js
-        $styleFile = $this->getFile('style.js', $archive);
+    public function gdal2mbtiles($zipPath, $layer_id,$type, $ext){
 
-        // 3. fix json to estract source and layers.
-        $styleFile = str_replace('var styleJSON = ', '', $styleFile);
-        $styleFile =trim(preg_replace('/\s+/', ' ', $styleFile));;
-        $styleFile = str_replace('\"', '"', $styleFile);
-        $styleFile = str_replace('\'', '"', $styleFile);
-        $styleFile = str_replace('], }', ']}', $styleFile);
-        
+        //TODO: show errors mensajes
+         // 1. open zip file
+        $archive = UnifiedArchive::open($zipPath->full);
 
-        // 3.1 check if Raster or Data
-        preg_match_all('/json_\w++/',$styleFile,$sourceVar); //Check if existe json_regx
-       // return $sourceVar[0]:
-        if(count($sourceVar[0])>0){ 
-            // DATA GeoJSON
-            // 3.2 Get source file in /data/source[0].js and replace var ... = with empty
-            $srcVarName = str_replace('json_', '', $sourceVar[0][0]);  //delete json_ at beginin
-            
-            // 3.3 open and fix geojson
-            $geojsonFile = $this->getFile($srcVarName.'.js', $archive);
-            $geojsonFile = str_replace('var '.$sourceVar[0][0].' = '  , '', $geojsonFile); //Delete var ... =
-            
-            // 3.4 Store edited geojson:
-            $storePath = $filePath->base.$srcVarName."_".$layer_id.'.js';
-            Storage::disk('plataforma')->put($storePath, $geojsonFile);
-            $styleFile = json_decode(str_replace($sourceVar[0][0], '"'. URL::to('/').'/assets/files/shares/plataforma/'.$storePath.'"', $styleFile));       
-        } else { 
-            // RASTER
-            //1. get png inside data/source.png
-            $styleFile = json_decode( $styleFile);
-            $srcVarName = key(get_object_vars( $styleFile->sources));
-            
-            //Resize and improve png:
-            $pngPath= $this->getFile($srcVarName.'.png', $archive,  $filePath->base);
-            Artisan::call('my_app:optimize_img 4000x4000 90 "'.$pngPath->full.'"');
-            ImageOptimizer::optimize($pngPath->full, $pngPath->full);
+        // 2. extract all files to foldershp or raster
+       $archive->extractFiles($zipPath->full_base.'/'.$type);
+
+        //Get source file  name based on ext
+        $files_list = $archive->getFileNames(); // array with files list
+        $index =  $this->filesEndsWith( [$ext],$files_list);
+        $fileName=  $files_list[$index];
+
+        // 3. exec gdal2Mbtiles with .ext file
+        $name = "src_".$layer_id;
+        $cmd =  'my_app:gdal2mbtiles '. 
+            $name.' '.
+            $zipPath->base.$type.'/'.$fileName.' '.
+            $type. //raster or vector
+            ' 8 ';
+        
+        // 4 Get STYLES file  name qml or sld if exist
+        $index =  $this->filesEndsWith( [".qml", ".sld"],$files_list);
+        $style_base_name = "";
+        if($index != -1){
+            $StylefileName=  $files_list[$index];
+            $cmd = $cmd. " ".$zipPath->base.$type.'/'.$StylefileName.' ';
+            //Create Custom cConv
+            $style_base_name = explode('.',$StylefileName)[0];
+        }
+    
+
+        
+        
+        // Starting clock time in seconds 
+        $start_time = microtime(true); 
+        Artisan::call( $cmd);   
+        $end_time = microtime(true); 
+        $execution_time = ($end_time - $start_time); 
+        
+        $glSource =(object)  array(
+            "id"=> $name,
+            "type" => $type,
+            "url" => config('obs.TILES_SERVER_URL')."data/".$name.".json",
+            //"tileSize"=>  256,
+            "maxzoom" =>19,
+            "minzoom" =>7,
+        );
+        $layer_type = $type == "vector"?"fill":"raster";
+
+        
+        //Load Tileserver style or reate a default
+         $glLayers = null;  
+         $local_style =  json_decode(file_get_contents(Storage::disk('plataforma')->path('/')."LAYERS/".$layer_id."/".$type."/".$style_base_name.".json"),true);
+         $glLayers =  $local_style ?  array_values( $local_style["layers"]):null;
+       
+         if($type=="vector" && $glLayers!==null  && sizeof($glLayers)>0){
+             foreach ($glLayers as $key => $glLayer) {
+                $glLayers[$key]["layer_id"] = $layer_id;
+                $glLayers[$key]["layout"]["visibility"] = "visible";
                 
-            //set image as source
-            $styleFile->sources->$srcVarName->url = URL::to('/').'/assets/files/shares/plataforma/'.$pngPath->relative;
-            $storePath =  $styleFile->sources->$srcVarName->url;
-            
-            //fix lat long in source TODO: check if always happen
-            $coordinates = $styleFile->sources->$srcVarName->coordinates;
-            $styleFile->sources->$srcVarName->coordinates = array_reverse( $coordinates);
+            }
+        }else{
+            $glLayers = [(object) array(
+                "layer_id" => $layer_id,
+                "type" => $layer_type,
+                "id"=> "layer_for_".$name,
+                "source"=> $name,
+                "source-layer"=> "data",
+                "maxzoom" =>19,
+                "minzoom" =>7,
+                "layout" =>  [ //Crear layout generic:
+                    "visibility" => "visible"
+                ]
+            )];
         }
 
-        //4. Add unique identifiers to soruces and layers
-        //add unic id to source and layers:
-        $styleFile->sources->$srcVarName->id = $srcVarName.$layer_id;
-        $glLayers = $styleFile->layers;
 
-        foreach ( $styleFile->layers as $key => $layer) {
-            $layer->id .= $layer_id;
-            $layer->{'layer_id'} = $layer_id;
-            if(isset($layer->source) ){
-                $layer->source .= $layer_id;
-            }else{
-                unset($styleFile->layers[$key]);
-            }
-            // For layer visibility in a
-            $layout =  [ //Crear layout generic:
-                "visibility" => "visible"
-            ];
-            $layer->layout = $layout;
-            
-            // Know fixes:
-            if(isset($layer->layout->{'text-size'}) ){
-                $layer->layout->{'text-size'} = (float) $layer->layout->{'text-size'};
-            }
-            if($layer->type == "fill"){
-                if(!isset($layer->paint->{'fill-color'})){
-                    $layer->paint->{'fill-color'} = '#fff';
-                    $layer->paint->{'fill-opacity'} = 0.7;
-                    $layer->paint->{'fill-outline-color'} ="#000";
-                }
-            }
-        } 
-           
 
-            //Delete zip file
-            Storage::disk('plataforma')->delete($filePath->relative);
-      
-            return (object) array(
-                "glLayers" =>array_values($styleFile->layers),
-                "glSource" => $styleFile->sources->$srcVarName,
-                "source" => $storePath,
-            );
+        // 5. reate convection if qml or sld are added
        
-        
-    }   
+       return (object) array(
+            "glLayers" =>$glLayers,
+            "glSource" =>  $glSource,
+            "source" => $name,
+            "time" => $execution_time
+        );
+    }
 
+    /**
+     * Return found file as object with path to the file
+     *
+     * @param string $fileName text to search
+     * @param array $archive compressed file
+     * @param array $storePath path to store found file
+     */
     protected function getFile($fileName,  $archive, $storePath = NULL)
     {   
-        $files_list = $archive->getFileNames(); 
+        $files_list = $archive->getFileNames(); //Return all files inside zip
         $index = $this->searchFileIndex($fileName, $files_list);
         $filePath =  $files_list[$index];
         if ($archive->isFileExists($filePath)) {
@@ -375,12 +401,28 @@ class LayerController extends Controller
         return null;
     }
 
+    /**
+     * Returns position of file, $key
+     *
+     * @param string $keyword
+     * @param array $arrayToSearch
+     */
     function searchFileIndex($keyword, $arrayToSearch){
         foreach($arrayToSearch as $key => $arrayItem){
             if( stristr( $arrayItem, $keyword ) ){
                 return $key;
             }
         }
+    }
+    function filesEndsWith($keywords, $arrayToSearch){
+        foreach($keywords as $key => $keyword){
+            foreach($arrayToSearch as $key => $arrayItem){
+                if( substr_compare( $arrayItem, $keyword, -strlen( $keyword ) ) === 0 ){
+                    return $key;
+                }
+            }
+        }
+        return -1;
     }
     
     public function storeFile($file, $destinationPath){
@@ -395,12 +437,13 @@ class LayerController extends Controller
             $destinationPath.$fileCompleteName,
             file_get_contents($file->getRealPath())
         );
+        
         return (object) array(
             "base"=>$destinationPath, 
             "fileName" => $fileCompleteName,
             "relative" => $destinationPath.$fileCompleteName,
-            "full" =>str_replace("\\","\/", Storage::disk('plataforma')->path('/').$destinationPath.$fileCompleteName));
-
+            "full" =>str_replace("\\","\/", Storage::disk('plataforma')->path('/').$destinationPath.$fileCompleteName),
+            "full_base" =>str_replace("\\","\/", Storage::disk('plataforma')->path('/').$destinationPath));
     }
 
     public function convert($from, $to)
@@ -711,9 +754,8 @@ class LayerController extends Controller
         $user = Auth::user();
         $layer = Layer::find($id);
         
-        //return response()->json($request->input('state'),500);
-
-        $layer->state =  $request->input('state');
+        $layer->isFixed =  $request->input('isFixed');
+        $layer->isPublic =  $request->input('isPublic');
         //Delete folder and files
         if($layer->save()){
             $log = new Log;
@@ -774,6 +816,7 @@ class LayerController extends Controller
         }
         
     }
+    
     /**
      * Remove the specified resource from storage.
      *
@@ -803,4 +846,164 @@ class LayerController extends Controller
  
         return response()->success('success');
     }
+
+    public function stations_features($layer,$stations_group)
+    {    
+        // will create or update a layer, based on stations types.
+
+        //retornar estaciones con archivos filtrados por tipo imagen o otro archivo
+        $stations = Station::where("type",$stations_group)
+        ->with("files")->get();
+        $glSource =  (object) [
+            'id' => $stations_group,
+            'type' => 'geojson',
+            'data' =>  (object)[
+                'type' => 'FeatureCollection',
+                'features'=> []
+            ],
+        ];
+        $glLayers = [(object)array(
+            'layer_id'=>  $layer->id,
+            'id'=> "layer_".$layer->id.$stations_group,
+            'type'=> 'symbol',
+            'source'=>$stations_group,
+            'paint'=> (object) [
+                "icon-opacity"=> 0.8
+            ],
+            'layout'=> (object) [
+                'icon-image'=> '{icon}',
+                'icon-size'=> 0.7,
+                'visibility'=> 'visible',
+                'text-anchor'=> 'left',
+                'text-offset'=> [1,0],
+                'text-field'=> '{name}',
+                'text-optional' => true,
+                'icon-allow-overlap' => false
+            ],
+        )];
+        $features =[];
+        foreach ($stations as $key => $station) {
+            if($station->state == true){
+                array_push($features, (object) [
+                        'type'=> 'Feature',
+                        'geometry'=>  (object)[
+                        'type'=> 'Point',
+                        'coordinates' => [$station->longitude, $station->latitude],
+                        ],
+                        'properties'=>  (object) [
+                        'id'=> $station->id,
+                        'icon' => $station->icon,
+                        'name'=> $station->name,
+                        'type'=> 'stations',
+                        ]
+                ]);
+            }
+
+        }
+        $glSource->data->features = $features;
+        
+        
+        return (object) array(
+            "glLayers" =>$glLayers,
+            "glSource" =>  $glSource,
+            "source" => $stations_group
+        );
+    }
+    
+    public function qgis2web($filePath, $layer_id){
+        // 1. Descompress file
+        $archive = UnifiedArchive::open($filePath->full);
+        
+        // 2 . Get Style.js
+        $styleFile = $this->getFile('style.js', $archive);
+
+        // 3. fix json to estract source and layers.
+        $styleFile = str_replace('var styleJSON = ', '', $styleFile);
+        $styleFile =trim(preg_replace('/\s+/', ' ', $styleFile));;
+        $styleFile = str_replace('\"', '"', $styleFile);
+        $styleFile = str_replace('\'', '"', $styleFile);
+        $styleFile = str_replace('], }', ']}', $styleFile);
+        
+
+        // 3.1 check if Raster or Data
+        preg_match_all('/json_\w++/',$styleFile,$sourceVar); //Check if existe json_regx
+       // return $sourceVar[0]:
+        if(count($sourceVar[0])>0){ 
+            // DATA GeoJSON
+            // 3.2 Get source file in /data/source[0].js and replace var ... = with empty
+            $srcVarName = str_replace('json_', '', $sourceVar[0][0]);  //delete json_ at beginin
+            
+            // 3.3 open and fix geojson
+            $geojsonFile = $this->getFile($srcVarName.'.js', $archive);
+            $geojsonFile = str_replace('var '.$sourceVar[0][0].' = '  , '', $geojsonFile); //Delete var ... =
+            
+            // 3.4 Store edited geojson:
+            $storePath = $filePath->base.$srcVarName."_".$layer_id.'.js';
+            Storage::disk('plataforma')->put($storePath, $geojsonFile);
+            $styleFile = json_decode(str_replace($sourceVar[0][0], '"'. URL::to('/').'/assets/files/shares/plataforma/'.$storePath.'"', $styleFile));       
+        } else { 
+            // RASTER
+            //1. get png inside data/source.png
+            $styleFile = json_decode( $styleFile);
+            $srcVarName = key(get_object_vars( $styleFile->sources));
+            
+            //Resize and improve png:
+            $pngPath= $this->getFile($srcVarName.'.png', $archive,  $filePath->base);
+            Artisan::call('my_app:optimize_img 4000x4000 90 "'.$pngPath->full.'"');
+            ImageOptimizer::optimize($pngPath->full, $pngPath->full);
+                
+            //set image as source
+            $styleFile->sources->$srcVarName->url = URL::to('/').'/assets/files/shares/plataforma/'.$pngPath->relative;
+            $storePath =  $styleFile->sources->$srcVarName->url;
+            
+            //fix lat long in source TODO: check if always happen
+            $coordinates = $styleFile->sources->$srcVarName->coordinates;
+            $styleFile->sources->$srcVarName->coordinates = array_reverse( $coordinates);
+        }
+
+        //4. Add unique identifiers to soruces and layers
+        //add unic id to source and layers:
+        $styleFile->sources->$srcVarName->id = $srcVarName.$layer_id;
+        $glLayers = $styleFile->layers;
+
+        foreach ( $styleFile->layers as $key => $layer) {
+            $layer->id .= $layer_id;
+            $layer->{'layer_id'} = $layer_id;
+            if(isset($layer->source) ){
+                $layer->source .= $layer_id;
+            }else{
+                unset($styleFile->layers[$key]);
+            }
+            // For layer visibility in a
+            $layout =  [ //Crear layout generic:
+                "visibility" => "visible"
+            ];
+            $layer->layout = $layout;
+            
+            // Know fixes:
+            if(isset($layer->layout->{'text-size'}) ){
+                $layer->layout->{'text-size'} = (float) $layer->layout->{'text-size'};
+            }
+            if($layer->type == "fill"){
+                if(!isset($layer->paint->{'fill-color'})){
+                    $layer->paint->{'fill-color'} = '#fff';
+                    $layer->paint->{'fill-opacity'} = 0.7;
+                    $layer->paint->{'fill-outline-color'} ="#000";
+                }
+            }
+        } 
+           
+
+            //Delete zip file
+            Storage::disk('plataforma')->delete($filePath->relative);
+      
+            return (object) array(
+                "glLayers" =>array_values($styleFile->layers),
+                "glSource" => $styleFile->sources->$srcVarName,
+                "source" => $storePath,
+            );
+       
+        
+    }   
+
 }

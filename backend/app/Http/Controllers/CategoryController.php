@@ -34,8 +34,8 @@ class CategoryController extends Controller
     public function index()
     {
         //
-        $this->stations(); // Will update stations based layers
-        $categories = Category::with("layers")->orderBy('id', 'DESC')->get();
+      
+        $categories = Category::with("childrens.childrens.childrens")->orderBy('id', 'DESC')->get();
       
        
       
@@ -70,7 +70,7 @@ class CategoryController extends Controller
                 'type'=> 'symbol',
                 'source'=> $key,
                 'paint'=> (object) [
-                    "icon-opacity"=> 0.7
+                    "icon-opacity"=> 0.8
                 ],
                 'layout'=> (object) [
                     'icon-image'=> '{icon}',
@@ -127,7 +127,7 @@ class CategoryController extends Controller
                 $category = new Category;
                 $category->name = "Estaciones";
             } 
-            $category->public_desc = " ";
+            $category->public_desc = "Estaciones ";
             $category->admin_desc = "Categoria Especial para Estaciones";
             $category->state = 1;
             $category->icon = "https://www.gravatar.com/avatar/dddc2d4ccab2b69066444945?d=identicon&r=g&s=48";
@@ -146,10 +146,10 @@ class CategoryController extends Controller
             $layer->source = $stations_source->source_name;
             $layer->sourceType = "stations";
             $layer->icon = "layer.svg";
-            $layer->state = 1;
+            $layer->isFixed = 1;
             $layer->glSource = json_encode($stations_source->glSource);
             
-            $layer->desc = " ";
+            $layer->desc = "Estaciones ";
             $layer->convention =  null;
             $layer->type = "points";
             $layer->exclusions = "[]";
@@ -190,9 +190,10 @@ class CategoryController extends Controller
         $user = Auth::user();
         $this->validate($request, [
         'name' => 'required',
-        'type' => 'required',
+        //'type' => 'required',
         'state' => 'required',
         'public_desc' => 'required',
+        'category_id' => 'required',
          ]);
 
 
@@ -217,7 +218,11 @@ class CategoryController extends Controller
             $category->public_desc =$request->input('public_desc');
             $category->admin_desc = "default";
             $category->type = $request->input('type');
-
+            if($request->input('category_id') != "0"){
+                $category->category_id = $request->input('category_id');
+            }else{
+                $category->category_id = null;
+            }
          
 
             $img = Avatar::create($category->name.'@obsriomagdalena.com')

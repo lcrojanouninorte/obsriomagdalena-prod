@@ -28,6 +28,10 @@ use Illuminate\Support\Facades\Route;
 use File;
 use Response;
 use App\PasswordReset;
+
+// TODO: open ports in servers
+use Illuminate\Support\Facades\Http;
+
 /**
  * @group Authentication, that extends passport
  *
@@ -164,6 +168,19 @@ class AuthController extends Controller
                 'password'=> $request->password,
                 'email'=>$user->email
             );
+
+            //Enviar a endpoint 
+
+            // TODO: open server ports to avoid this.
+            // http://orienta-t.lcrojano.com/api/emails/register
+            $response = Http::post('http://localhost:9000/api/emails/register', [
+                'verificationCode'=>$user->email_verification_code,
+                'password'=> $request->password,
+                'email'=>$user->email,
+                'user' => $user
+            ]);
+            $user->response=$response;
+
 /*
             Mail::send('emails.userverification', $data, function ($m) use ($user) {
                 $m->from('obsriomagdalena@uninorte.edu.co', 'Observatorio del Río Magdalena ');
@@ -230,14 +247,20 @@ class AuthController extends Controller
         ]);
 
         $token = $reset->token;
-/*
+
+        // TODO: open server ports to avoid this.
+        $response = Http::post('http://localhost:9000/api/emails/reset', [
+            'email' =>  $email,
+            'token' => $token,
+        ]);$user->response=$response;
+/*  
         Mail::send('emails.reset_link', compact('email', 'token'), function ($mail) use ($email) {
             $mail->to($email)
             ->from('noreply@example.com')
             ->subject('Password reset link');
         });*/
 
-        return response()->json("Se ha enviado un Correo con las instrucciones",200);
+        return response()->json($response,200);
     }
     public function reset(Request $request)
     {

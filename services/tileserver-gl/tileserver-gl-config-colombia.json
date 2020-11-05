@@ -1,0 +1,22 @@
+{
+    "options": {
+        "paths": {
+            "root": "/usr/src/app/node_modules/tileserver-gl-styles",
+            "fonts": "/createlab/fonts",
+            "styles": "/createlab/styles",
+            "mbtiles": "/createlab/mbtiles",
+            "sprites": "/createlab/sprites"
+        },
+        "serveAllFonts": true
+    },
+    "domains": ["localhost:8080", "127.0.0.1:8080"],
+    "styles": {
+        "colombia": {
+            "style": "basic-cpb-gl-style-v1.9/style-local.json",
+            "tilejson": { "bounds": [-9.408655, 49.00443, 2.25, 61.13564] }
+        }
+    },
+    "data": {
+        "colombia": { "mbtiles": "south-america_colombia.mbtiles" }
+    }
+}

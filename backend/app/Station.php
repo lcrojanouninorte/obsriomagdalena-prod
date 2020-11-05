@@ -13,7 +13,7 @@ class Station extends Model
 
 
     }
-
+    
     public function columns()
     {
         //return $this->hasMany(File::class, 'column_id', 'id');         
