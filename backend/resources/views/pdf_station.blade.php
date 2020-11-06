@@ -12,7 +12,17 @@
                 Set the margins of the page to 0, so the footer and the header
                 can be of the full height and width !
              **/
-        
+             .keep-together {
+                page-break-inside: avoid;
+            }
+            
+            .break-before {
+                page-break-before: always;
+            }
+            
+            .break-after {
+                page-break-after: always;
+            }
         @page {
             margin: 0cm 0cm;
         }
@@ -94,9 +104,9 @@
 
             <div class="d-flex justify-content-center flex-column" >
                 @foreach($station->imgFiles ?? '' as $img)
-                <div  style='page-break-before:always;' class="d-flex justify-content-center  flex-column image shadow-sm mb-3 " >
+                <div   class="d-flex justify-content-center  flex-column image shadow-sm mb-3 keep-together" >
                     <h2 class="h4 m5">{{$img->title}}</h2>
-                    <img style='page-break-before:always;' class="align-self-center mx-auto" src="{{$img->file_path}}" alt="Grafico" width="90%" height="auto">
+                    <img  class="align-self-center mx-auto" src="{{$img->file_path}}" alt="Grafico" width="90%" height="auto">
                     <div class="desc">
                         <p class="paragraph p-3 m-2">
                             {{$img->desc}}
