@@ -252,7 +252,9 @@ class AuthController extends Controller
         $response = Http::post('http://orienta-t.lcrojano.com/api/emails/register', [
             'email' =>  $email,
             'token' => $token,
-        ]);$user->response=$response;
+        ]);
+        $res["json  "] =       $response->json();
+        $res["response"]=$response->ok();
 /*  
         Mail::send('emails.reset_link', compact('email', 'token'), function ($mail) use ($email) {
             $mail->to($email)
@@ -260,7 +262,7 @@ class AuthController extends Controller
             ->subject('Password reset link');
         });*/
 
-        return response()->json($response,200);
+        return response()->json($res,200);
     }
     public function reset(Request $request)
     {
