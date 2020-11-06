@@ -31,6 +31,11 @@ Route::group(['middleware' => ['api']], function ($api) {
     $api->get('stations/rows', 'StationController@getRows');
     $api->get('stations/groups', 'StationController@getGroups');
     $api->get('stations/{id}', 'StationController@show');
+
+    Route::get('/stations/report/{id}', 'StationController@getReport');
+
+
+    
     $api->get('columns', 'ColumnController@index');//AKA variables de una estacion
     $api->get('layers', 'LayerController@index');
     $api->get('layers/{id}', 'LayerController@show');

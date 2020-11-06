@@ -254,7 +254,7 @@ class AuthController extends Controller
             'token' => $token,
         ]);
         $res["json  "] =       $response->json();
-        $res["response"]=$response->ok();
+        $res["response"]=$response->ok();        
 /*  
         Mail::send('emails.reset_link', compact('email', 'token'), function ($mail) use ($email) {
             $mail->to($email)

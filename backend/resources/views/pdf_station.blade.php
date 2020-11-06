@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Observatorio del Río Magdalena</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
         /** 
                 Set the margins of the page to 0, so the footer and the header
@@ -37,6 +37,7 @@
             color: white;
             text-align: center;
             line-height: 1.5cm;
+            width: 100vw;
         }
         /** Define the footer rules **/
         
@@ -75,7 +76,7 @@
         <div class=" d-flex justify-content-center mb-5">
             <div class=" d-flex justify-content-center  shadow-sm">
                 <div class=" align-self-center">
-                    <img src="{{ config('obs.TILES_SERVER_URL') }}styles/colombia/static/{{$station->longitude}},{{$station->latitude}},12/200x200@2x.png" width="200" alt="ubicación">
+                    <img src="https://obsriomagdalena.uninorte.edu.co/tileserver/styles/colombia-style/static/{{$station->longitude}},{{$station->latitude}},12/200x200@2x.png" width="200" alt="ubicación">
                 </div>
 
                 <div class=" align-self-center p-3">
@@ -91,11 +92,11 @@
 
         <div>
 
-            <div class="d-flex justify-content-center flex-column">
+            <div class="d-flex justify-content-center flex-column" >
                 @foreach($station->imgFiles ?? '' as $img)
-                <div class="image shadow-sm mb-3 " style="page-break-after: always;">
-                    <!-- <h2 class="h4 m5">{{$img->name}}</h2>-->
-                    <img style='page-break-after:always;' class="align-self-center" src="{{$img->file_path}}" alt="Grafico" width="100%" height="auto">
+                <div  style='page-break-before:always;' class="d-flex justify-content-center  flex-column image shadow-sm mb-3 " >
+                    <h2 class="h4 m5">{{$img->title}}</h2>
+                    <img style='page-break-before:always;' class="align-self-center mx-auto" src="{{$img->file_path}}" alt="Grafico" width="90%" height="auto">
                     <div class="desc">
                         <p class="paragraph p-3 m-2">
                             {{$img->desc}}
