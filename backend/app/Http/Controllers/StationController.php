@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Http\Requests;
 
 use App\Station;
+use App\Layer;
 
 use App\Log;
 
@@ -15,11 +16,14 @@ use App\File;
 use Auth;
 
 use DB;
+use PDF;
 
 use Storage;
 use ImageOptimizer;
 use Artisan;
 use URL;
+
+use Carbon\Carbon;
 class StationController extends Controller
 {
     /**
@@ -66,7 +70,6 @@ class StationController extends Controller
             ];
 
             $features =[];
-            
             foreach ($stations as $key => $station) {
                 $imgFiles = [];
                 $otherFiles = [];
@@ -80,26 +83,28 @@ class StationController extends Controller
                 }
                 $station->imgFiles = $imgFiles;
                 $station->otherFiles = $otherFiles;
-                if($station->state == true){
 
+                
+                if($station->state == true){
+                    
                     // GeoJson
                     array_push($features, (object) [
-                          'type'=> 'Feature',
-                          'geometry'=>  (object)[
+                        'type'=> 'Feature',
+                        'geometry'=>  (object)[
                             'type'=> 'Point',
                             'coordinates' => [$station->longitude, $station->latitude],
-                          ],
-                          'properties'=>  (object) [
+                        ],
+                        'properties'=>  (object) [
                             'id'=> $station->id,
                             'icon' => $station->icon,
                             'name'=> $station->name,
-                          ]
-                    ]);
+                            ]
+                            ]);
                 }
-
+                
             }
             
-                    
+            
             
             $glSource->data->features = $features;
             $stations_source->glSource = $glSource;
@@ -114,7 +119,6 @@ class StationController extends Controller
         //retornar estaciones con archivos filtrados por tipo imagen o otro archivo
         $stations = Station::with("files")->get();
         $imagenes = Array("png","jpg","gif","tiff","bpm","svg","jpeg");
-
         foreach ($stations as $key => $station) {
             $imgFiles = [];
             $otherFiles = [];
@@ -137,6 +141,11 @@ class StationController extends Controller
            
         
         return response()->json($stations,200);
+    }
+
+    public function getGroups(){
+        $groups = Station::select("type")->distinct()->pluck("type");
+        return response()->json($groups,200);
     }
     /**
      * Show the form for creating a new resource.
@@ -163,6 +172,7 @@ class StationController extends Controller
         'name' => 'required',
         'latitude' => 'required',
         'longitude' => 'required',
+        'type' => 'required',
          ]);
 
         
@@ -187,6 +197,7 @@ class StationController extends Controller
             $station->latitude = $request->input('latitude');
             $station->longitude = $request->input('longitude');
             $station->state = $request->input('state') || '0'; 
+            $station->type = $request->input('type')  ; 
 
             if( $request->hasFile('file')){
                 
@@ -206,9 +217,11 @@ class StationController extends Controller
                 ImageOptimizer::optimize($storedPath, $storedPath);
                 Artisan::call('my_app:optimize_img 70x70 70 "'.$storedPath.'"');
             }
- 
+        
+
 
             if($station->save()){
+                $this->stations_features($station->type);
 
                 //uodate log
                 $log->table_id = $station->id;
@@ -234,82 +247,82 @@ class StationController extends Controller
     public function uploadFiles(Request $request){
     //
 
-    $user = Auth::user();
-    $this->validate($request, [
-    'files' => 'required',
-    'columns' => 'required',
-    'id' => 'required'
-    ]);
-    $imagenes = Array("png","jpg","gif","tiff","bpm","svg","jpeg");
-    $imgFiles = [];
-    $otherFiles = [];
+        $user = Auth::user();
+        $this->validate($request, [
+        'files' => 'required',
+        'columns' => 'required',
+        'id' => 'required'
+        ]);
+        $imagenes = Array("png","jpg","gif","tiff","bpm","svg","jpeg");
+        $imgFiles = [];
+        $otherFiles = [];
 
-    try {
-        $station=[];
-        $columns=[];
-        $log = new Log;
-        $log->desc = "User ($user->id, $user->name): ADD Files To ";
-        $log->user_id = $user->id;
-        $log->table = "FILES";
-        $stationName = $request->input('name');
-        $stationId = $request->input('id');
-        if($request->hasFile('files')){
-            $files  = $request->file('files');
-            $destinationPath = "";
-            $columns = $request->input('columns');
-            foreach ($files as $key => $file) {
-                $fileCompleteName = $file->getClientOriginalName();
-                $fileCompleteName = preg_replace('/\s/', '_', $fileCompleteName  );
-                $fileCompleteName = preg_replace('/[()]/', '', $fileCompleteName);
-        
-                $fileName = explode(".", $fileCompleteName)[0];
-                $extension = explode(".", $fileCompleteName)[1];
-                $path = $file->storeAs(
-                    $stationName."/".$columns["name"], 
-                    $fileCompleteName, 
-                    'plataforma');
-                //TODO: if file with same name, copy and not overwrite
-                $file = new File;
-                $file->station_id = $stationId;
-                $file->column_id = $columns["id"];
-                $file->file_path =  URL::to('/').'/assets/files/shares/plataforma/'.$path;;
-                $file->icon = $extension;
-                $file->name = $fileName;
-                $file->active = true;
-
-                
-                
-                
-                if($file->save()){
-                    if(in_array(strtolower($file->icon), $imagenes)){
-                            $imgFiles[] = $file;                    
-                    }else{
-                            $otherFiles[] = $file;
-                                    
-                    }
-                    //uodate log
-                    $log->table_id = $file->id;
-                    $log->desc = $log->desc." FILES ($file->id, $file->name).";
-                    
-                }
-
-            }
-            $log->save();
+        try {
+            $station=[];
+            $columns=[];
+            $log = new Log;
+            $log->desc = "User ($user->id, $user->name): ADD Files To ";
+            $log->user_id = $user->id;
+            $log->table = "FILES";
+            $stationName = $request->input('name');
+            $stationId = $request->input('id');
+            if($request->hasFile('files')){
+                $files  = $request->file('files');
+                $destinationPath = "";
+                $columns = $request->input('columns');
+                foreach ($files as $key => $file) {
+                    $fileCompleteName = $file->getClientOriginalName();
+                    $fileCompleteName = preg_replace('/\s/', '_', $fileCompleteName  );
+                    $fileCompleteName = preg_replace('/[()]/', '', $fileCompleteName);
             
-        }else{
-            return response()->json("Por favor agrega archivos", 500);
+                    $fileName = explode(".", $fileCompleteName)[0];
+                    $extension = explode(".", $fileCompleteName)[1];
+                    $path = $file->storeAs(
+                        $stationName."/".$columns["name"], 
+                        $fileCompleteName, 
+                        'plataforma');
+                    //TODO: if file with same name, copy and not overwrite
+                    $file = new File;
+                    $file->station_id = $stationId;
+                    $file->column_id = $columns["id"];
+                    $file->file_path =  URL::to('/').'/assets/files/shares/plataforma/'.$path;;
+                    $file->icon = $extension;
+                    $file->name = $fileName;
+                    $file->active = true;
+
+                    
+                    
+                    
+                    if($file->save()){
+                        if(in_array(strtolower($file->icon), $imagenes)){
+                                $imgFiles[] = $file;                    
+                        }else{
+                                $otherFiles[] = $file;
+                                        
+                        }
+                        //uodate log
+                        $log->table_id = $file->id;
+                        $log->desc = $log->desc." FILES ($file->id, $file->name).";
+                        
+                    }
+
+                }
+                $log->save();
+                
+            }else{
+                return response()->json("Por favor agrega archivos", 500);
+            }
+            
+            
+            // });
+        } catch (Exception $e) {
+            return response()->error($e->getMessage());
         }
         
-        
-        // });
-    } catch (Exception $e) {
-        return response()->error($e->getMessage());
-    }
-    
-    $station =  Station::find($request->input('id'));
-    $station->imgFiles = $imgFiles;
-    $station->otherFiles = $otherFiles;
-    return response()->success($station);
+        $station =  Station::find($request->input('id'));
+        $station->imgFiles = $imgFiles;
+        $station->otherFiles = $otherFiles;
+        return response()->success($station);
     }
     /**
      * Display the specified resource.
@@ -320,6 +333,28 @@ class StationController extends Controller
     public function show($id)
     {
         //
+
+
+        $station = $this->getStationWithFiles($id);
+        return response()->success($station);
+    }
+
+    public function getStationWithFiles($id){
+        $station = Station::with("files")->find($id);
+        $imagenes = Array("png","jpg","gif","tiff","bpm","svg","jpeg");
+            $imgFiles = [];
+            $otherFiles = [];
+            foreach ($station->files as $key => $file) {
+                if(in_array(strtolower($file->icon), $imagenes)){
+                    $imgFiles[] = $file;                    
+                }else{
+                    $otherFiles[] = $file;
+                    
+                }
+            }
+            $station->imgFiles = $imgFiles;
+            $station->otherFiles = $otherFiles;
+            return $station;
     }
 
     /**
@@ -420,7 +455,7 @@ class StationController extends Controller
             }
 
             if($station->save()){
-
+                $this->stations_features($station->type);
                 //uodate log
                 $log->table_id = $station->id;
                 $log->desc = $log->desc." station ($station->id, $station->name).";
@@ -465,4 +500,110 @@ class StationController extends Controller
  
         return response()->success('success');
     }
+
+     
+
+       
+    
+        // Generate PDF
+        public function getReport($id) {
+
+            
+            // retreive all records from db
+            ini_set('max_execution_time', 300);  
+            $station = $this->getStationWithFiles($id);
+            $mytime = Carbon::now()->format('d-m-Y H:m:s');
+       
+
+          $pdf  =  PDF::loadView('pdf_station', compact('station'));
+          $pdf->setOption('enable-javascript', true)
+          ->setOption('debug-javascript', true)
+          ->setOptions(['dpi' => 150])
+          ->setOption('margin-top',0)
+          ->setPaper('a4')
+          ->setOption('margin-bottom',0)
+          ->setOption('margin-left',0)
+          ->setOption('margin-right',0)
+          ->setOption('javascript-delay', 10000);
+       //   $pdf->setOption('enable-smart-shrinking', true);
+          $pdf->setOption('no-stop-slow-scripts', true);
+          // download PDF file with download method
+          return $pdf->download('es.pdf');
+        }
+
+        
+        // Generate PDF
+        public function station($id) {
+            // retreive all records from db
+            $station = $this->getStationWithFiles($id);
+             return view('pdf_station', compact('station'));
+        }
+
+
+        //postSave()
+        public function stations_features($stations_group)
+        {   
+            
+            //Find layers
+            $layer = Layer::where('source',$stations_group)->first();
+            // will create or update a layer, based on stations types.
+    
+            //retornar estaciones con archivos filtrados por tipo imagen o otro archivo
+            $stations = Station::where("type",$stations_group)
+            ->get();
+            $glSource =  (object) [
+                'id' => $stations_group,
+                'type' => 'geojson',
+                'data' =>  (object)[
+                    'type' => 'FeatureCollection',
+                    'features'=> []
+                ],
+            ];
+            $glLayers = [(object)array(
+                'layer_id'=>  $layer->id,
+                'id'=> "layer_".$layer->id.$stations_group,
+                'type'=> 'symbol',
+                'source'=>$stations_group,
+                'paint'=> (object) [
+                    "icon-opacity"=> 0.8
+                ],
+                'layout'=> (object) [
+                    'icon-image'=> '{icon}',
+                    'icon-size'=> 0.7,
+                    'visibility'=> 'visible',
+                    'text-anchor'=> 'left',
+                    'text-offset'=> [1,0],
+                    'text-field'=> '{name}',
+                    'text-optional' => true,
+                    'icon-allow-overlap' => false
+                ],
+            )];
+            $features =[];
+            foreach ($stations as $key => $station) {
+                if($station->state == true){
+                    array_push($features, (object) [
+                            'type'=> 'Feature',
+                            'geometry'=>  (object)[
+                            'type'=> 'Point',
+                            'coordinates' => [$station->longitude, $station->latitude],
+                            ],
+                            'properties'=>  (object) [
+                            'id'=> $station->id,
+                            'icon' => $station->icon,
+                            'name'=> $station->name,
+                            'type'=> 'stations',
+                            ]
+                    ]);
+                }
+    
+            }
+            $glSource->data->features = $features;
+            
+            $layer->glSource = json_encode( $glSource,JSON_UNESCAPED_SLASHES);
+            $layer->glLayers =  json_encode($glLayers, JSON_UNESCAPED_SLASHES);
+           
+            return $layer->save();
+           
+        }
+    
 }

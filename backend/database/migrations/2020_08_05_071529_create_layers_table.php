@@ -25,6 +25,8 @@ class CreateLayersTable extends Migration
             $table->longText('desc');
             $table->string('convention');
             $table->string('type');
+            $table->string('isPublic');
+            $table->string('startVisible');
             $table->string('exclusions');
             //$table->foreign('category_id')->references('id')->on('categories')->onDelete('cascade');
 

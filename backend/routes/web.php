@@ -16,4 +16,5 @@ Route::get('/', 'MiscController@serveApp');
 Route::get('/plataforma', 'MiscController@serveApp');
 Route::get('/unsupported-browser', 'MiscController@unsupported');
 
- 
+Route::get('stations/htmlreport/{id}','StationController@station');
+Route::get('/stations/report/{id}', 'StationController@getReport');

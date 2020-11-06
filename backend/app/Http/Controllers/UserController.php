@@ -18,6 +18,7 @@ use URL;
 use \wapmorgan\UnifiedArchive\UnifiedArchive;
 use ImageOptimizer;
 use Artisan;
+use Illuminate\Support\Facades\Http;
 class UserController extends Controller
 {
     
@@ -140,11 +141,19 @@ class UserController extends Controller
                      'password'=> $user->password,
                      'email'=>$user->email
                  );
-     
-                 Mail::send('emails.userverification', $data, function ($m) use ($user) {
+            // TODO: open server ports to avoid this.
+            // http://orienta-t.lcrojano.com/api/emails/register
+            $response = Http::post('http://localhost:9000/api/emails/register', [
+                'verificationCode'=>$user->email_verification_code,
+                'password'=> $request->password,
+                'email'=>$user->email,
+                'user' => $user
+            ]);
+            $user->response=$response->status();
+                /* Mail::send('emails.userverification', $data, function ($m) use ($user) {
                      $m->from('obsriomagdalena@uninorte.edu.co', 'Observatorio del Río Magdalena ');
                      $m->to($user->email)->subject('Confirmación de Registro en Plataforma OBS');
-                 });
+                 });*/
              }
 
              return response()->json($user, 200);

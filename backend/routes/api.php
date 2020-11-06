@@ -26,9 +26,11 @@ Passport::routes(function ($router) {
 //Not Authenticated Users
 Route::group(['middleware' => ['api']], function ($api) {
     //ORMA 2020
+    $api->get('misc/restarttileserver', 'MiscController@restartTileserver');
     $api->get('stations', 'StationController@index');
-    $api->get('/stations/rows', 'StationController@getRows');
-
+    $api->get('stations/rows', 'StationController@getRows');
+    $api->get('stations/groups', 'StationController@getGroups');
+    $api->get('stations/{id}', 'StationController@show');
     $api->get('columns', 'ColumnController@index');//AKA variables de una estacion
     $api->get('layers', 'LayerController@index');
     $api->get('layers/{id}', 'LayerController@show');
@@ -70,9 +72,9 @@ Route::group(['middleware' => ['api']], function ($api) {
 Route::group(['middleware' => ['auth:api']], function ($api) {
 
     //ORMA 2020
-    $api->resource('stations', 'StationController', ['except'=> ['index']]);
+    $api->resource('stations', 'StationController', ['except'=> ['index', 'show']]);
     $api->post('/stations/files', 'StationController@uploadFiles');
-
+    
     $api->resource('people', 'PeopleController', ['except'=> ['index']]);
   
     $api->resource('columns', 'ColumnController', ['except'=> ['index']]);

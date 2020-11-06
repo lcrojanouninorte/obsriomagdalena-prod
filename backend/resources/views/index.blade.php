@@ -5,12 +5,12 @@
     <meta charset="utf-8">
     <title>Observatorio del Río Magdalena</title>
 
-    <base href="/plataforma/">
+    <base href="/">
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="stylesheet" href="styles.6907a3d76dd0191be83f.css"></head>
+<link rel="stylesheet" href="styles.fd0bd7a8b8669d831d44.css"></head>
 
 <body>
     <ngx-app>Cargando...</ngx-app>
@@ -114,6 +114,10 @@
         <div class="blob blob-5"></div>
     </div>
 
+<<<<<<< HEAD
 <script src="runtime.ec26351b00e50e39453f.js" defer></script><script src="polyfills-es5.c5213a0708d21636c446.js" nomodule defer></script><script src="polyfills.4ae1d77ea1b35f53d168.js" defer></script><script src="scripts.1365b06b517999d3a632.js" defer></script><script src="main.bc75fb1483566716f0bf.js" defer></script></body>
+=======
+<script src="runtime.fe62d99758c5873c4bdb.js" defer></script><script src="polyfills-es5.0302e490def189f62525.js" nomodule defer></script><script src="polyfills.6c3c6f3b49d5043ca050.js" defer></script><script src="scripts.5f9a76c1e1fbcd6240ee.js" defer></script><script src="main.a393d6bb0a21770d072b.js" defer></script></body>
+>>>>>>> 68fe0b8811fec69fd8177b640a63b52b8eb7f172
 
 </html>

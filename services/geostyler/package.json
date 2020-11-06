@@ -1,0 +1,27 @@
+{
+    "name": "lcrojano",
+    "version": "1.0.0",
+    "description": "Implementación del paquete geostyler",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lcrojanouninorte/obsriomagdalena-prod.git"
+    },
+    "keywords": [
+        "geostyler"
+    ],
+    "author": "lcrojano",
+    "license": "BSD-2-Clause",
+    "bugs": {
+        "url": "https://github.com/lcrojanouninorte/obsriomagdalena-prod/issues"
+    },
+    "homepage": "https://github.com/lcrojanouninorte/obsriomagdalena-prod#readme",
+    "dependencies": {
+        "geostyler-mapbox-parser": "^0.1.0",
+        "geostyler-qgis-parser": "^0.2.3",
+        "geostyler-sld-parser": "^2.0.1",
+        "meow": "^7.1.1"
+    }
+}
