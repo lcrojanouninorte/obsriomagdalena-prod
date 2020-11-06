@@ -530,7 +530,14 @@ class StationController extends Controller
        //   $pdf->setOption('enable-smart-shrinking', true);
           $pdf->setOption('no-stop-slow-scripts', true);
           // download PDF file with download method
-          return $pdf->download('es.pdf');
+          $headers = array(
+            'Content-Description: File Transfer',
+            'Content-Type: application/octet-stream',
+            );
+
+          //  $pdf->download("reporte.pdf");
+          return   $pdf->download("reporte.pdf");
+            
         }
 
         
