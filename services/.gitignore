@@ -1,0 +1,6 @@
+# Mbtiles
+tileserver-gl/mbtiles/*.mbtiles
+
+# Fonts
+tileserver-gl/fonts/*
+ 
