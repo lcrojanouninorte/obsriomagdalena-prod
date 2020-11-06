@@ -252,7 +252,9 @@ class AuthController extends Controller
         $response = Http::post('http://localhost:9000/api/emails/reset', [
             'email' =>  $email,
             'token' => $token,
-        ]);$user->response=$response;
+        ]);
+        $res["json  "] =       $response->json();
+        $res["response"]=$response->ok();        
 /*  
         Mail::send('emails.reset_link', compact('email', 'token'), function ($mail) use ($email) {
             $mail->to($email)

@@ -285,6 +285,7 @@ class StationController extends Controller
                     $file = new File;
                     $file->station_id = $stationId;
                     $file->column_id = $columns["id"];
+                    $file->title = $columns["title"];
                     $file->file_path =  URL::to('/').'/assets/files/shares/plataforma/'.$path;;
                     $file->icon = $extension;
                     $file->name = $fileName;
@@ -444,6 +445,7 @@ class StationController extends Controller
                     }
                     $file->station_id = $station->id;
                     $file->column_id = $columns[$key]["id"];
+                    $file->column_id = $columns[$key]["title"];
                     $file->file_path = $destinationPath;
                     $file->icon = $extension;
                     $file->name = $fileName;
