@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <title>Observatorio del Río Magdalena</title>
 
-    <base href="/">
+    <base href="/plataforma/">
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/png" href="favicon.png">
@@ -114,6 +114,6 @@
         <div class="blob blob-5"></div>
     </div>
 
-<script src="runtime.fe62d99758c5873c4bdb.js" defer></script><script src="polyfills-es5.0302e490def189f62525.js" nomodule defer></script><script src="polyfills.6c3c6f3b49d5043ca050.js" defer></script><script src="scripts.5f9a76c1e1fbcd6240ee.js" defer></script><script src="main.a393d6bb0a21770d072b.js" defer></script></body>
+<script src="runtime.4eab92ed686896b828a8.js" defer></script><script src="polyfills-es5.0302e490def189f62525.js" nomodule defer></script><script src="polyfills.6c3c6f3b49d5043ca050.js" defer></script><script src="scripts.5f9a76c1e1fbcd6240ee.js" defer></script><script src="main.21e56b0d96577259f07c.js" defer></script></body>
 
 </html>
