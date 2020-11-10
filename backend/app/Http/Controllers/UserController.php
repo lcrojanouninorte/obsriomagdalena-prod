@@ -175,9 +175,8 @@ class UserController extends Controller
         $fileCompleteName = $file->getClientOriginalName();
         $fileCompleteName = preg_replace('/\s/', '_', $fileCompleteName  );
          $fileCompleteName = preg_replace('/[()]/', '', $fileCompleteName);
-
-        $fileName = explode(".", $fileCompleteName)[0];
-        $extension = explode(".", $fileCompleteName)[1];
+         $fileName = pathinfo($fileCompleteName, PATHINFO_FILENAME);
+         $extension = pathinfo($fileCompleteName, PATHINFO_EXTENSION);
 
         
         $file_saved = Storage::disk($disk)->put(

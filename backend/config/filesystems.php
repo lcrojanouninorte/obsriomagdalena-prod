@@ -53,6 +53,11 @@ return [
             'root'   => public_path() . '/assets/files/shares/plataforma',
             'visibility' => 'public'
         ],
+        'tileserver' => [
+            'driver' => 'local',
+            'root'   => env('TILESERVER_STORAGE_PATH'),
+            'visibility' => 'public'
+        ],
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app'),

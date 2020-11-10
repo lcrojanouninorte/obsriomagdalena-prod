@@ -9,14 +9,26 @@
         },
         "serveAllFonts": true
     },
-    "domains": ["localhost:8080", "127.0.0.1:8080"],
+    "domains": [
+        "localhost:8080",
+        "127.0.0.1:8080"
+    ],
     "styles": {
-        "colombia": {
+        "colombia-style": {
             "style": "basic-cpb-gl-style-v1.9/style-local.json",
-            "tilejson": { "bounds": [-9.408655, 49.00443, 2.25, 61.13564] }
+            "tilejson": {
+                "bounds": [
+                    -9.408655,
+                    49.00443,
+                    2.25,
+                    61.13564
+                ]
+            }
         }
     },
     "data": {
-        "colombia": { "mbtiles": "south-america_colombia.mbtiles" }
+        "colombia": {
+            "mbtiles": "south-america_colombia.mbtiles"
+        }
     }
 }

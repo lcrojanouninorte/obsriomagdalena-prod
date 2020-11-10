@@ -35,7 +35,7 @@ class CategoryController extends Controller
     {
         //
       
-        $categories = Category::with("childrens.childrens.childrens")->orderBy('id', 'DESC')->get();
+        $categories = Category::with("childrens.childrens.childrens")->orderBy('id', 'DESC')->orderBy("id")->get();
       
        
       
