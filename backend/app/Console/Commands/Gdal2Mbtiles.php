@@ -143,8 +143,8 @@ class Gdal2Mbtiles extends Command
         $this->info('4. restarting tileserver');
         exec("docker stop tileserver-gl ");
         sleep(5);
-        $this->info('docker  run --rm --name tileserver-gl -v "'.config('obs.DOCKER_TILESERVER_PATH').'":/createlab -p 8080:80 klokantech/tileserver-gl --verbose --config /createlab/tileserver-gl-config-colombia.json |at now');
-        exec('docker  run --rm --name tileserver-gl -v "'.config('obs.DOCKER_TILESERVER_PATH').'":/createlab -p 8080:80 klokantech/tileserver-gl --verbose --config /createlab/tileserver-gl-config-colombia.json |at now');
+        $this->info('docker  run --rm --name tileserver-gl -v "'.config('obs.DOCKER_TILESERVER_PATH').'":/createlab -p 8080:80 klokantech/tileserver-gl --verbose --config /createlab/tileserver-gl-config-colombia.json --public_url https://obsriomagdalena.uninorte.edu.co/tileserver |at now');
+        exec('docker  run --rm --name tileserver-gl -v "'.config('obs.DOCKER_TILESERVER_PATH').'":/createlab -p 8080:80 klokantech/tileserver-gl --verbose --config /createlab/tileserver-gl-config-colombia.json --public_url https://obsriomagdalena.uninorte.edu.co/tileserver |at now');
         sleep(5);
                 $this->info('4. restarted');
 

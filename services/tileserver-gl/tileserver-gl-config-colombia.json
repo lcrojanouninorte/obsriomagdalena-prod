@@ -17,6 +17,7 @@
         }
     },
     "data": {
-        "colombia": { "mbtiles": "south-america_colombia.mbtiles" }
+        "colombia-style": { "mbtiles": "south-america_colombia.mbtiles" },
+        "src_48": { "mbtiles": "FAC_wgs842_cmp.mbtiles" }
     }
 }
