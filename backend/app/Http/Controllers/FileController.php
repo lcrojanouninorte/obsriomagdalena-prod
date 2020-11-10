@@ -47,10 +47,12 @@ class FileController extends Controller
         $user = Auth::user();
         $this->validate($request, [
         'id' => 'required',
-        'file' => 'required',
+       // 'file' => 'required',
         
 
          ]);
+
+       
          try {
             $file = [];
             $file = File::where('id', "=",  $request->input('id'))->first();
@@ -73,10 +75,24 @@ class FileController extends Controller
             $path = $fileConv->storeAs($destinationPath, $image_file_completeName, 'plataforma');
             $file->file_path =   URL::to('/').'/assets/files/shares/plataforma/'.$path;
             $file->icon = $extension;
-            
+            $file->title = $request->input("title");
+                $file->desc = $request->input("desc");
             //ImageOptimizer::optimize($file->file_path,$file->file_path);
            /* Artisan::call('my_app:optimize_img 400x400 90 "'.$path->full.'"');*/
             
+         }else{
+            if($request->has('id')){
+            
+              $columns =  $request->input('columns');
+                $file =  File::find($request->input('id'));
+                $file->title = $request->input("title");
+                $file->desc = $request->input("desc");
+                $file->active = true;
+            
+                }else{
+
+                    return response()->json("Por favor agrega archivos", 500);
+                }
          }
 
         if($file->save()){

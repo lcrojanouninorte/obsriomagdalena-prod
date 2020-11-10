@@ -17,8 +17,7 @@
         "colombia-style": {
             "style": "basic-cpb-gl-style-v1.9/style-local.json",
             "tilejson": {
-                "bounds": [
-                    -9.408655,
+                "bounds": [-9.408655,
                     49.00443,
                     2.25,
                     61.13564

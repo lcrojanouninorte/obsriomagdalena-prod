@@ -105,7 +105,7 @@
 
             <div class="d-flex justify-content-center flex-column" >
                 @foreach($station->imgFiles ?? '' as $img)
-                <div   class="d-flex justify-content-center  flex-column image shadow-sm mb-3 " >
+                <div   class="d-flex justify-content-center  flex-column image shadow-sm mb-3 keep-together" >
                     <h2 class="h4 m5">{{$img->title}}</h2>
                     <img  class="align-self-center mx-auto" src="{{$img->file_path}}" alt="Grafico" width="80%" height="auto">
                     <div class="desc">
