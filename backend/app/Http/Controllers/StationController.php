@@ -274,9 +274,9 @@ class StationController extends Controller
                     $fileCompleteName = $file->getClientOriginalName();
                     $fileCompleteName = preg_replace('/\s/', '_', $fileCompleteName  );
                     $fileCompleteName = preg_replace('/[()]/', '', $fileCompleteName);
-            
-                    $fileName = explode(".", $fileCompleteName)[0];
-                    $extension = explode(".", $fileCompleteName)[1];
+                    $fileName = pathinfo($fileCompleteName, PATHINFO_FILENAME);
+                    $extension = pathinfo($fileCompleteName, PATHINFO_EXTENSION);
+           
                     $path = $file->storeAs(
                         $stationName."/".$columns["name"], 
                         $fileCompleteName, 
@@ -407,8 +407,8 @@ class StationController extends Controller
                 foreach ($files as $key => $file) {
                     $destinationPath = "";
                     $fileCompleteName = $file->getClientOriginalName();
-                    $fileName = explode(".", $fileCompleteName)[0];
-                    $extension = explode(".", $fileCompleteName)[1];
+                    $fileName = pathinfo($fileCompleteName, PATHINFO_FILENAME);
+                    $extension = pathinfo($fileCompleteName, PATHINFO_EXTENSION);
                     $station->name = trim($station->name);
 
                     //Replace space in column name with _ and any accent to normal
@@ -527,7 +527,7 @@ class StationController extends Controller
           ->setOption('margin-left',0)
           ->setOption('margin-right',0)
           ->setOption('javascript-delay', 10000);
-       //   $pdf->setOption('enable-smart-shrinking', true);
+          $pdf->setOption('enable-smart-shrinking', true);
           $pdf->setOption('no-stop-slow-scripts', true);
           // download PDF file with download method
           $headers = array(

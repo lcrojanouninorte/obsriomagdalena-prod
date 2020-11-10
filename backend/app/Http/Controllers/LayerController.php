@@ -32,9 +32,11 @@ class LayerController extends Controller
         $user = Auth::user();
 
         
-        $layers = Layer::publics()->with("category.parent.parent")->orderBy("category_id")->get();
-        //TODO: actualizar capa estaciones. stations_features($layer,$stations_group)
+        $layers = Layer::publics()->with("category.parent.parent")->orderBy("position",'ASC')->get();
+
         
+      
+        //TODO: order by category
         return response()->success($layers);
 
     }
@@ -107,7 +109,8 @@ class LayerController extends Controller
                // $layer_name = $layer->name;
                // $destinationPath ="LAYERS/$cat_name/$layer_name/"; //./relative to mapbox
                 $destinationPath ="LAYERS/$layer->id/"; //./relative to mapbox
-                $path = $this->storeFile($fileConv,  $destinationPath);
+                $path = $this->storeFile($fileConv,  $destinationPath, "plataforma");
+
                 //Resize and improve png:
                 Artisan::call('my_app:optimize_img 300x300 96 "'.$path->full.'"');
                 ImageOptimizer::optimize($path->full, $path->full);
@@ -121,30 +124,41 @@ class LayerController extends Controller
             ];
 
             // Dos casos, con archivo o desde urls.
+           
             $type = explode(".", $layer->sourceType)[0];
 
             if($request->hasFile('file') ){
-                //Crear glLayer y glSource para no sobrecargar al cliente
-            
-                
+                //Crear glLayer y glSource 
                 $destinationPath = "";
                 $file = null;
                 $file  = $request->file('file');
                 $category = Category::find($layer->category_id);
-                
-               /* 
-               // changed to only id, to put complex names
-                $cat_name = $category->name;
-                $layer_name = $layer->name;
-                $destinationPath = "LAYERS/$cat_name/$layer_name/"; //./relative to mapbox
-                */
                 $destinationPath ="LAYERS/$layer->id/";
                 $jsonString =""; //Contiene datos de cada feature para luego dar estilos
-                switch ($type) { 
-                // si es geojson, se debe construir el stilo
-                // si es qgis, el estilo será tomado de los archivos subidos.
+                switch ($type) {
+                    case 'raster':
+                        $storedZip = $this->storeFile($file,  $destinationPath, "tileserver");
+                        $raster = $this->gdal2mbtiles($storedZip,$layer->id,'raster', '.tif',20,5);
+                        if( isset($raster->error)){
+                            return response()->error($raster, 500);
+                        }
+
+                        $glSource = $raster->glSource;
+                        $layer->source = $raster->source;
+                        $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
+                        $layer->glLayers =  json_encode($raster->glLayers, JSON_UNESCAPED_SLASHES);
+                    break; 
+                    case 'shape': 
+                        $storedZip = $this->storeFile($file,  $destinationPath,"tileserver");
+                        $shape = $this->gdal2mbtiles($storedZip,$layer->id,'vector', '.shp',22,1);
+                  //      return response()->error($shape, 500);
+                        $glSource = $shape->glSource;
+                        $layer->source = $shape->source;
+                        $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
+                        $layer->glLayers =  json_encode($shape->glLayers, JSON_UNESCAPED_SLASHES);
+                        break;  
                     case 'geojson': // Archivo .geojson local
-                        $path = $this->storeFile($file,  $destinationPath);
+                        $path = $this->storeFile($file,  $destinationPath, "plataforma");
                         $layer->source =  $path->fileName;
                         $glSource->data = URL::to('/').'/assets/files/shares/plataforma/'.$path->relative;
                         $jsonString = file_get_contents($path->full);
@@ -152,9 +166,7 @@ class LayerController extends Controller
                         $layer->glLayers =  $this->getMBStyle($jsonString,$layer);
                         break;
                     case 'qgis2web': //Deprecaeted
-                        // instalar binarios png y magick image
-                        
-                        $storedZip = $this->storeFile($file,  $destinationPath);
+                        $storedZip = $this->storeFile($file,  $destinationPath, "plataforma");
                         $qgis2web = $this->qgis2web($storedZip, $layer->id);
                         //return response()->json($qgis2web);
                         $glSource = $qgis2web->glSource;
@@ -162,24 +174,7 @@ class LayerController extends Controller
                         $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
                         $layer->glLayers =  json_encode($qgis2web->glLayers, JSON_UNESCAPED_SLASHES);
                         break; 
-                    case 'raster':
-                        $storedZip = $this->storeFile($file,  $destinationPath);
-                        $raster = $this->gdal2mbtiles($storedZip,$layer->id,'raster', '.tif');
-                        $glSource = $raster->glSource;
-                        $layer->source = $raster->source;
-                        $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
-                        $layer->glLayers =  json_encode($raster->glLayers, JSON_UNESCAPED_SLASHES);
-                    break; 
-                    case 'shape': 
-                        $storedZip = $this->storeFile($file,  $destinationPath);
-                        $shape = $this->gdal2mbtiles($storedZip,$layer->id,'vector', '.shp');
-                  //      return response()->error($shape, 500);
-
-                        $glSource = $shape->glSource;
-                        $layer->source = $shape->source;
-                        $layer->glSource = json_encode($glSource,JSON_UNESCAPED_SLASHES);
-                        $layer->glLayers =  json_encode($shape->glLayers, JSON_UNESCAPED_SLASHES);
-                        break; 
+                  
                    
                     default:
                         return response()->error($layer, 500);
@@ -282,14 +277,16 @@ class LayerController extends Controller
         
     }
 
-    public function gdal2mbtiles($zipPath, $layer_id,$type, $ext){
+    public function gdal2mbtiles($zipPath, $layer_id,$type, $ext, $max_zoom, $min_zoom){
 
         //TODO: show errors mensajes
          // 1. open zip file
+         
         $archive = UnifiedArchive::open($zipPath->full);
 
         // 2. extract all files to foldershp or raster
-       $archive->extractFiles($zipPath->full_base.'/'.$type);
+        $archive->extractFiles($zipPath->full_base.'/'.$type);
+       
 
         //Get source file  name based on ext
         $files_list = $archive->getFileNames(); // array with files list
@@ -300,7 +297,7 @@ class LayerController extends Controller
         $name = "src_".$layer_id;
         $cmd =  'my_app:gdal2mbtiles '. 
             $name.' '.
-            $zipPath->base.$type.'/'.$fileName.' '.
+            '"'.$zipPath->base.$type.'/'.$fileName.'" '.
             $type. //raster or vector
             ' 8 ';
         
@@ -309,36 +306,69 @@ class LayerController extends Controller
         $style_base_name = "";
         if($index != -1){
             $StylefileName=  $files_list[$index];
-            $cmd = $cmd. " ".$zipPath->base.$type.'/'.$StylefileName.' ';
+            $cmd = $cmd. ' "'.$zipPath->base.$type.'/'.$StylefileName.'" ';
             //Create Custom cConv
-            $style_base_name = explode('.',$StylefileName)[0];
+            $style_base_name =  pathinfo($StylefileName, PATHINFO_FILENAME);
+          
+            
         }
-    
-
-        
-        
+       /* return (object)  
+        array(
+            "error"=>"Error de Formato, favor verificar.", 
+            "info"=>$cmd
+        );*/
         // Starting clock time in seconds 
+        set_time_limit ( 2000 );
         $start_time = microtime(true); 
-        Artisan::call( $cmd);   
+        try {
+            //code...
+            Artisan::call($cmd);   
+        } catch (\Throwable $th) {
+            
+            throw $th;
+            return $th;
+        }
+        //After this comand, all files should been created. 
+        $to = pathinfo($fileName, PATHINFO_FILENAME) ."_cmp.mbtiles"; // same as from but change extension
+        if(!file_exists(config('obs.TILESERVER_STORAGE_PATH')."/mbtiles/{$name}_{$to}")){
+            return (object)  
+            array(
+                "error"=>"Error de Formato, favor verificar.", 
+                "dir"=>config('obs.TILESERVER_STORAGE_PATH')."/mbtiles/{$name}_{$to}" ,
+                "info"=>$cmd
+            );
+        }
+            // TODO: check if files existe?
+        $res = Artisan::output();
+        //TODO: check if has error by string
         $end_time = microtime(true); 
         $execution_time = ($end_time - $start_time); 
         
         $glSource =(object)  array(
             "id"=> $name,
             "type" => $type,
-            "url" => config('obs.TILES_SERVER_URL')."data/".$name.".json",
+            "url" => config('obs.TILES_SERVER_URL')."/data/".$name.".json",
             //"tileSize"=>  256,
-            "maxzoom" =>19,
-            "minzoom" =>7,
         );
+        if($type=="raster"){
+            $glSource->maxzoom = 15; //igual que el comando mb2tiles
+            $glSource->minzoom = 5;
+        }else{
+            $glSource->maxzoom = $max_zoom;
+            $glSource->minzoom = $min_zoom;
+        }
+    
         $layer_type = $type == "vector"?"fill":"raster";
 
         
-        //Load Tileserver style or reate a default
+        //Load Tileserver style or create a default
          $glLayers = null;  
-         $local_style =  json_decode(file_get_contents(Storage::disk('plataforma')->path('/')."LAYERS/".$layer_id."/".$type."/".$style_base_name.".json"),true);
-         $glLayers =  $local_style ?  array_values( $local_style["layers"]):null;
-       
+         if($style_base_name != ""){
+             $style_file = Storage::disk("tileserver")->path("styles/".$name."_style.json");
+             $local_style =  json_decode(file_get_contents($style_file),true);
+             $glLayers =  $local_style ?  array_values( $local_style["layers"]):null;
+           
+         }
          if($type=="vector" && $glLayers!==null  && sizeof($glLayers)>0){
              foreach ($glLayers as $key => $glLayer) {
                 $glLayers[$key]["layer_id"] = $layer_id;
@@ -352,8 +382,8 @@ class LayerController extends Controller
                 "id"=> "layer_for_".$name,
                 "source"=> $name,
                 "source-layer"=> "data",
-                "maxzoom" =>19,
-                "minzoom" =>7,
+                "maxzoom" =>$max_zoom,
+                "minzoom" =>$min_zoom,
                 "layout" =>  [ //Crear layout generic:
                     "visibility" => "visible"
                 ]
@@ -425,25 +455,24 @@ class LayerController extends Controller
         return -1;
     }
     
-    public function storeFile($file, $destinationPath){
+    public function storeFile($file, $destinationPath, $disk){
         $fileCompleteName = $file->getClientOriginalName();
-        $fileName = explode(".", $fileCompleteName)[0];
-        $extension = explode(".", $fileCompleteName)[1];
         $fileCompleteName = preg_replace('/\s/', '_', $fileCompleteName  );
         $fileCompleteName = preg_replace('/[()]/', '', $fileCompleteName);
-
+        $fileName = pathinfo($fileCompleteName, PATHINFO_FILENAME);
+        $extension = pathinfo($fileCompleteName, PATHINFO_EXTENSION);
         
-        $file_saved = Storage::disk('plataforma')->put(
-            $destinationPath.$fileCompleteName,
-            file_get_contents($file->getRealPath())
+        $file_saved = Storage::disk($disk)->putFileAs(
+            $destinationPath,
+            $file->getRealPath() ,$fileCompleteName
         );
         
         return (object) array(
             "base"=>$destinationPath, 
             "fileName" => $fileCompleteName,
             "relative" => $destinationPath.$fileCompleteName,
-            "full" =>str_replace("\\","\/", Storage::disk('plataforma')->path('/').$destinationPath.$fileCompleteName),
-            "full_base" =>str_replace("\\","\/", Storage::disk('plataforma')->path('/').$destinationPath));
+            "full" =>str_replace("\\","\/", Storage::disk($disk)->path('/').$destinationPath.$fileCompleteName),
+            "full_base" =>str_replace("\\","\/", Storage::disk($disk)->path('/').$destinationPath));
     }
 
     public function convert($from, $to)

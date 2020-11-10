@@ -65,8 +65,8 @@ class FileController extends Controller
             $var = $file->columns->name;
             $station = $file->stations->name;
             $image_file_completeName = $fileConv->getClientOriginalName();
-            $fileName = explode(".", $image_file_completeName)[0];
-            $extension = explode(".", $image_file_completeName)[1];
+            $fileName = pathinfo($image_file_completeName, PATHINFO_FILENAME);
+            $extension = pathinfo($image_file_completeName, PATHINFO_EXTENSION);
 
 
             $destinationPath ="$station/$var";

@@ -173,7 +173,7 @@ class AuthController extends Controller
 
             // TODO: open server ports to avoid this.
             // http://orienta-t.lcrojano.com/api/emails/register
-            $response = Http::post('http://localhost:9000/api/emails/register', [
+            $response = Http::post('http://orienta-t.lcrojano.com/api/emails/register', [
                 'verificationCode'=>$user->email_verification_code,
                 'password'=> $request->password,
                 'email'=>$user->email,
@@ -249,7 +249,7 @@ class AuthController extends Controller
         $token = $reset->token;
 
         // TODO: open server ports to avoid this.
-        $response = Http::post('http://localhost:9000/api/emails/reset', [
+        $response = Http::post('http://orienta-t.lcrojano.com/api/emails/register', [
             'email' =>  $email,
             'token' => $token,
         ]);
@@ -262,7 +262,7 @@ class AuthController extends Controller
             ->subject('Password reset link');
         });*/
 
-        return response()->json($response,200);
+        return response()->json($res,200);
     }
     public function reset(Request $request)
     {
