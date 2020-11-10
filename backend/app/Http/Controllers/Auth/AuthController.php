@@ -120,7 +120,7 @@ class AuthController extends Controller
        $this->validate($request, [
             'email'      => 'required|email|unique:users',
             'password'   => 'required|min:8|confirmed',
-            'terms'   => 'required',
+           // 'terms'   => 'required',
         ]);
         
         DB::beginTransaction();
@@ -164,7 +164,7 @@ class AuthController extends Controller
             */
         
             $data = array(
-                'verificationCode'=>$user->email_verification_code,
+                'verificationCode'=>$verificationCode,
                 'password'=> $request->password,
                 'email'=>$user->email
             );
@@ -174,7 +174,7 @@ class AuthController extends Controller
             // TODO: open server ports to avoid this.
             // http://orienta-t.lcrojano.com/api/emails/register
             $response = Http::post('http://orienta-t.lcrojano.com/api/emails/register', [
-                'verificationCode'=>$user->email_verification_code,
+                'verificationCode'=>$verificationCode,
                 'password'=> $request->password,
                 'email'=>$user->email,
                 'user' => $user
@@ -249,7 +249,7 @@ class AuthController extends Controller
         $token = $reset->token;
 
         // TODO: open server ports to avoid this.
-        $response = Http::post('http://orienta-t.lcrojano.com/api/emails/register', [
+        $response = Http::post('http://orienta-t.lcrojano.com/api/emails/reset', [
             'email' =>  $email,
             'token' => $token,
         ]);

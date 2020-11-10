@@ -286,6 +286,8 @@ class StationController extends Controller
                     $file->station_id = $stationId;
                     $file->column_id = $columns["id"];
                     $file->title = $columns["title"];
+                    $file->desc = $columns["desc"];
+
                     $file->file_path =  URL::to('/').'/assets/files/shares/plataforma/'.$path;;
                     $file->icon = $extension;
                     $file->name = $fileName;
@@ -311,7 +313,10 @@ class StationController extends Controller
                 $log->save();
                 
             }else{
-                return response()->json("Por favor agrega archivos", 500);
+                
+
+                    return response()->json("Por favor agrega archivos", 500);
+                
             }
             
             
