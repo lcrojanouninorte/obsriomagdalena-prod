@@ -84,30 +84,34 @@
                 <?php echo date("Y-m-d, H:m:s A");?>
             </h6>
         </div>
-        <div class=" d-flex justify-content-center mb-5">
-            <div class=" d-flex justify-content-center  shadow-sm">
-                <div class=" align-self-center">
-                    <img src="https://obsriomagdalena.uninorte.edu.co/tileserver/styles/colombia-style/static/{{$station->longitude}},{{$station->latitude}},12/150x150@2x.png" width="150" alt="ubicación">
-                </div>
+        <div style=" margin:0 auto;  "  class=" d-flex justify-content-center mb-5 ">
+                    <div  >
 
-                <div class=" align-self-center p-2">
-                    <div class="d-flex">
-                        <img class=" align-self-center " src="{{ $station->icon }}" alt="Icono de estación" width="30" height="30">
+                        <div style="width:200px;float:left;" class="d-flex  ">
+                            <img src="https://obsriomagdalena.uninorte.edu.co/tileserver/styles/colombia-style/static/{{$station->longitude}},{{$station->latitude}},12/150x150@2x.png" width="150" alt="ubicación">
+                        </div>
+
+                        <div   class="d-flex  p-2">
+                            <div class="d-flex">
+                                <img class=" align-self-center " src="{{ $station->icon }}" alt="Icono de estación" width="30" height="30">
+                            </div>
+                            <div><b>Nombre: {{ $station->name }}</b></div>
+                            <div><b>Lat: {{ $station->latitude }}</b></div>
+                            <div><b>Lon: {{ $station->longitude }}</b></div>
+                        </div>
                     </div>
-                    <div><b>Nombre: {{ $station->name }}</b></div>
-                    <div><b>Lat: {{ $station->latitude }}</b></div>
-                    <div><b>Lon: {{ $station->longitude }}</b></div>
-                </div>
-            </div>
+             
         </div>
-
+ 
    
 
-            <div class="d-flex justify-content-center flex-column" >
+            <div class="d-flex justify-content-center flex-column mt-3" >
                 @foreach($station->imgFiles ?? '' as $img)
-                <div   class="d-flex justify-content-center  flex-column image shadow-sm mb-3 keep-together" >
-                    <h2 class="h4 m5">{{$img->title}}</h2>
-                    <img  class="align-self-center mx-auto" src="{{$img->file_path}}" alt="Grafico" width="80%" height="auto">
+                <div   class="d-flex justify-content-center  flex-column image shadow-sm mb-4 " >
+                    <div class=" d-flex flex-column justify-content-center">
+                        <h2 class="h5 mb-2 text-left">{{$img->title}}</h2>
+                        <img  class="align-self-center mx-auto" src="{{$img->file_path}}" alt="Grafico" width="75%" height="auto">
+                    </div>
                     <div class="desc">
                         <p class="paragraph p-3 m-2">
                             {{$img->desc}}
@@ -120,11 +124,11 @@
  
 
     </main>
-    <footer style="vh=10;">
+    <!--<footer style="vh=10;">
         Observatorio del Río Magdalena - Universidad del Norte Copyright &copy;
         <?php echo date("Y");?>
     </footer>
-    <!--  <script src="{{ asset('js/app.js') }}" type="text/js"></script>-->
+      <script src="{{ asset('js/app.js') }}" type="text/js"></script>-->
 </body>
 
 </html>

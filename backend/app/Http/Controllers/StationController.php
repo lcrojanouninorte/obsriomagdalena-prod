@@ -532,6 +532,10 @@ class StationController extends Controller
           ->setOption('margin-left',0)
           ->setOption('margin-right',0)
           ->setOption('javascript-delay', 10000);
+         //  $footerHtml = view()->make('pdf.footer')->render();
+         
+          //$pdf->setOption('footer-html', $footerHtml);
+
           $pdf->setOption('enable-smart-shrinking', true);
           $pdf->setOption('no-stop-slow-scripts', true);
           // download PDF file with download method

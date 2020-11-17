@@ -112,7 +112,7 @@ class LayerController extends Controller
                 $path = $this->storeFile($fileConv,  $destinationPath, "plataforma");
 
                 //Resize and improve png:
-                Artisan::call('my_app:optimize_img 300x300 96 "'.$path->full.'"');
+                Artisan::call('my_app:optimize_img 100% 96 "'.$path->full.'"');
                 ImageOptimizer::optimize($path->full, $path->full);
                 $layer->convention = URL::to('/').'/assets/files/shares/plataforma/'. $path->relative;
             }
@@ -354,8 +354,8 @@ class LayerController extends Controller
             $glSource->maxzoom = 15; //igual que el comando mb2tiles
             $glSource->minzoom = 5;
         }else{
-            $glSource->maxzoom = $max_zoom;
-            $glSource->minzoom = $min_zoom;
+            //$glSource->maxzoom = $max_zoom;
+           // $glSource->minzoom = $min_zoom;
         }
     
         $layer_type = $type == "vector"?"fill":"raster";
