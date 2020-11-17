@@ -86,6 +86,7 @@ class LayerController extends Controller
                 $layer->sourceType = $request->input('sourceType');
                 $layer->icon = "layer.svg";
                 $layer->desc = trim($request->input('desc'));
+                $layer->references = trim($request->input('references'));
             }
 
             //Si es una nueva capa Id antes de salvar
@@ -99,6 +100,8 @@ class LayerController extends Controller
                 $layer->icon = "layer.svg";
                 $layer->desc = trim($request->input('desc'));
                 $layer->type =  $request->input('type') ;
+                $layer->references = trim($request->input('references'));
+
             }
 
             // Set Convention

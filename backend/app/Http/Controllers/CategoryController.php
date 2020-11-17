@@ -35,7 +35,7 @@ class CategoryController extends Controller
     {
         //
       
-        $categories = Category::with("childrens.childrens.childrens")->orderBy('id', 'DESC')->orderBy("id")->get();
+        $categories = Category::with("childrens.childrens.childrens", "parent")->orderBy('id', 'DESC')->orderBy("id")->get();
       
        
       
@@ -225,7 +225,7 @@ class CategoryController extends Controller
             }
          
 
-            $img = Avatar::create($category->name.'@obsriomagdalena.com')
+            $img = Avatar::create($category->name.$category->public_desc.'@obsriomagdalena.com')
                             ->toGravatar(['d' => 'identicon', 'r' => 'g', 's' => 48]);
             // Output: http://gravatar.com/avatar/0dcae7d6d76f9a3b14588e9671c45879?d=identicon&r=pg&s=100
             $category->icon = $img;
@@ -239,6 +239,7 @@ class CategoryController extends Controller
         } catch (Exception $e) {
             return response()->error($e->getMessage(), 500);
         }
+        $category->parent = $category->parent;
         return response()->success($category);
     }
 
