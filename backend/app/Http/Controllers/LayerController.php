@@ -220,8 +220,13 @@ class LayerController extends Controller
 
             }
 
+            //Get last number of category
+           // $category =  Layer::where("category_id","==",$layer->category_id)->get();
+           // $categoryCount = $category->count();
+            $layer->position =26;
 
             if($layer->save()){
+                
                 $layer->layer_id = $layer->id;
                 $log->table_id = $layer->id;
                 $log->desc = $log->desc." Layer ($layer->id, $layer->name).";
